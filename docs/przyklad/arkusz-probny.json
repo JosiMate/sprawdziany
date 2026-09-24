@@ -1,0 +1,66 @@
+{
+  "format": "arkusz-sprawdzianu-pceikz",
+  "wersja": 1,
+  "id": "probny",
+  "rodzaj": "Arkusz próbny",
+  "tytul": "Przećwicz obsługę strony sprawdzianu",
+  "przedmiot": "Informatyka",
+  "plik": "probny",
+  "zasady": [
+    "To jest arkusz <strong>próbny</strong> — nic tu nie jest oceniane. Sprawdź, jak działa wpisywanie odpowiedzi, wklejanie zrzutów ekranu i pobieranie dokumentu Word.",
+    "Odpowiedzi zapisują się same. Możesz zamknąć kartę i otworzyć stronę jeszcze raz — praca na ciebie poczeka.",
+    "Na końcu kliknij <strong>Zakończ i usuń odpowiedzi</strong>. Tak samo zrobisz na prawdziwym sprawdzianie, żeby następna osoba przy tym komputerze nie zobaczyła twojej pracy."
+  ],
+  "zadania": [
+    {
+      "nr": 1,
+      "tytul": "Twoje stanowisko",
+      "polecenia": [
+        {
+          "nr": "a", "poziom": "K", "kluczowe": true,
+          "tresc": "Otwórz wiersz poleceń i odczytaj nazwę komputera poleceniem <code>hostname</code>.",
+          "pola": [
+            { "typ": "tabela", "mono": true, "wiersze": [
+              ["probny_polecenie", "Użyte polecenie", "np. hostname"],
+              ["probny_nazwa", "Nazwa komputera", ""]
+            ] }
+          ]
+        },
+        {
+          "nr": "b", "poziom": "K",
+          "tresc": "Zrób zrzut ekranu okna wiersza poleceń z wynikiem i wklej go poniżej.",
+          "pola": [
+            { "typ": "zrzut", "id": "probny_zrzut", "opis": "okno wiersza poleceń z wynikiem polecenia hostname" }
+          ]
+        },
+        {
+          "nr": "c", "poziom": "P",
+          "tresc": "Sprawdź wersję systemu poleceniem <code>winver</code>.",
+          "pola": [
+            { "typ": "wybor", "id": "probny_system", "pytanie": "Który to system?",
+              "opcje": ["Windows 10", "Windows 11", "inny"] },
+            { "typ": "tekst", "id": "probny_kompilacja", "pytanie": "Numer wersji i kompilacji", "wiersze": 1, "mono": true }
+          ]
+        }
+      ]
+    },
+    {
+      "nr": 2,
+      "tytul": "Krótka odpowiedź",
+      "wstep": "Tu ćwiczysz odpowiedzi opisowe. Na sprawdzianie pisz pełnymi zdaniami.",
+      "polecenia": [
+        {
+          "nr": "a", "poziom": "R",
+          "tresc": "Napisz własnymi słowami, do czego służy skrót <kbd>Win</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd>.",
+          "pola": [ { "typ": "tekst", "id": "probny_skrot", "wiersze": 3 } ]
+        },
+        {
+          "nr": "b", "poziom": "D",
+          "przed": "Sytuacja: kolega wkleił do pracy zrzut <em>całego pulpitu</em> z kilkoma otwartymi oknami, a wynik polecenia jest na nim ledwie widoczny.",
+          "tresc": "Co mu doradzisz i dlaczego?",
+          "pola": [ { "typ": "tekst", "id": "probny_rada", "wiersze": 4 } ]
+        }
+      ]
+    }
+  ]
+}

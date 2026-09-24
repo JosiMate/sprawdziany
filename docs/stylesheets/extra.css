@@ -1,0 +1,503 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Warstwa wyglądu — odświeżenie interfejsu serwisów z materiałami.
+
+   Ten plik odpowiada wyłącznie za wygląd powłoki dokumentacji: ramki callout,
+   nagłówek, obie nawigacje i typografię. Style elementów interaktywnych
+   (karta pracy, quizy, pasek postępu, kafelki, tabele spisu tematów) zostają
+   w assets/extra.css — te dwa pliki celowo się nie przenikają.
+
+   Wszystko jest napisane na zmiennych motywu Material, więc działa w obu
+   schematach: slate (domyślny) i default. Nie ma tu ani jednego koloru
+   wpisanego na sztywno poza akcentami typów callout, które i tak pochodzą
+   z palety Material.
+
+   Kolejność w mkdocs.yml ma znaczenie — ten plik ładuje się jako drugi:
+       extra_css:
+         - assets/extra.css
+         - stylesheets/extra.css
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Promień zaokrągleń — jedna wartość na cały serwis, żeby karty, kafelki
+     i przyciski nie miały trzech różnych. */
+  --ui-promien: 0.4rem;
+  --ui-promien-maly: 0.3rem;
+  /* Szerokość paska akcentu przy callout — odpowiednik border-l-4. */
+  --ui-pasek: 0.2rem;
+  /* Krycie tła karty callout — kilka procent koloru typu domieszane do tła
+     strony. Tyle wystarczy, żeby karta była widoczna, a nie krzyczała. */
+  --ui-tlo-callout: 4.5%;
+}
+
+/* W ciemnym schemacie tło karty musi być odrobinę mocniejsze — na ciemnym
+   podłożu ta sama wartość alfa daje słabszy efekt niż na białym. */
+[data-md-color-scheme="slate"] {
+  --ui-tlo-callout: 6%;
+  /* Delikatniejsza linia rozdzielająca niż domyślna. */
+  --ui-linia: color-mix(in srgb, var(--md-default-fg-color) 12%, transparent);
+}
+
+[data-md-color-scheme="default"] {
+  --ui-linia: color-mix(in srgb, var(--md-default-fg-color) 10%, transparent);
+}
+
+/* ═══════════════════════════ 1. Karty callout ═══════════════════════════
+   Material domyślnie rysuje ramkę dookoła całej karty i dokłada cień.
+   Zostawiamy wyłącznie pasek po lewej — reszta karty opiera się na tle
+   w kolorze typu, rozcieńczonym do kilku procent. Prawe rogi zaokrąglone,
+   lewe płaskie, żeby pasek czytał się jako pasek, a nie jako obwódka. */
+
+.md-typeset .admonition,
+.md-typeset details {
+  /* akcent domyślny; poszczególne typy nadpisują go niżej */
+  --ui-akcent: #448aff;
+
+  border-width: 0 0 0 var(--ui-pasek);
+  border-style: solid;
+  border-color: var(--ui-akcent);
+  border-radius: 0 var(--ui-promien) var(--ui-promien) 0;
+
+  background-color: var(--md-default-bg-color); /* zapas, gdyby color-mix nie zadziałał */
+  background-color: color-mix(in srgb, var(--ui-akcent) var(--ui-tlo-callout), var(--md-default-bg-color));
+
+  box-shadow: none;
+  padding: 0 0.9rem 0.55rem;
+  margin: 1.5em 0;
+  font-size: 0.68rem;
+}
+
+/* Tytuł bez wypełnionego paska. Wypełnienie całej belki kolorem typu to
+   właśnie to, co sprawia, że domyślny callout wygląda ciężko — nowoczesne
+   dokumentacje (Starlight, Nextra) kolorują sam napis, a tło zostawiają
+   jednolite z kartą. */
+/* Selektor w formie :is(...) celowo — Material ustawia tło tytułu regułą
+   `.md-typeset :is(.success,.check,.done) > :is(.admonition-title,summary)`,
+   która ma wyższą swoistość niż zwykłe `.md-typeset .admonition-title`.
+   Żeby ją nadpisać, trzeba tej samej swoistości i późniejszej pozycji. */
+.md-typeset :is(.admonition, details) > :is(.admonition-title, summary) {
+  background-color: transparent;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  padding-block: 0.75rem 0.15rem;
+  padding-inline: 1.5rem 0;
+  color: var(--ui-akcent);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.005em;
+}
+
+/* W jasnym schemacie czyste kolory akcentu bywają zbyt jasne na białym tle,
+   więc przyciemniamy je domieszką koloru tekstu. */
+[data-md-color-scheme="default"] .md-typeset :is(.admonition, details) > :is(.admonition-title, summary) {
+  color: color-mix(in srgb, var(--ui-akcent) 78%, var(--md-default-fg-color));
+}
+
+/* Ikona typu — Material rysuje ją jako maskę w ::before. Wystarczy przesunąć
+   ją do nowego paddingu. */
+[dir="ltr"] .md-typeset :is(.admonition, details) > :is(.admonition-title, summary),
+[dir="rtl"] .md-typeset :is(.admonition, details) > :is(.admonition-title, summary) {
+  border-left-width: 0;
+  padding-inline: 1.5rem 0;
+}
+
+.md-typeset :is(.admonition, details) > :is(.admonition-title, summary)::before {
+  inset-inline-start: 0;
+  top: 0.85rem;
+}
+
+/* Strzałka rozwijania w <details> — wyrównanie do nowego paddingu. */
+.md-typeset details > summary::after {
+  inset-inline-end: 0.7rem;
+}
+
+/* ─── akcenty poszczególnych typów (kolory z palety Material) ─── */
+.md-typeset .note        { --ui-akcent: #448aff; }
+.md-typeset .abstract,
+.md-typeset .summary,
+.md-typeset .tldr        { --ui-akcent: #00b0ff; }
+.md-typeset .info,
+.md-typeset .todo        { --ui-akcent: #00b8d4; }
+.md-typeset .tip,
+.md-typeset .hint,
+.md-typeset .important   { --ui-akcent: #00bfa5; }
+.md-typeset .success,
+.md-typeset .check,
+.md-typeset .done        { --ui-akcent: #00c853; }
+.md-typeset .question,
+.md-typeset .help,
+.md-typeset .faq         { --ui-akcent: #64dd17; }
+.md-typeset .warning,
+.md-typeset .caution,
+.md-typeset .attention   { --ui-akcent: #ff9100; }
+.md-typeset .failure,
+.md-typeset .fail,
+.md-typeset .missing     { --ui-akcent: #ff5252; }
+.md-typeset .danger,
+.md-typeset .error       { --ui-akcent: #ff1744; }
+.md-typeset .bug         { --ui-akcent: #f50057; }
+.md-typeset .example     { --ui-akcent: #7c4dff; }
+.md-typeset .quote,
+.md-typeset .cite        { --ui-akcent: #9e9e9e; }
+
+/* ─── typografia wewnątrz callout ───
+   To była najciaśniejsza część strony: cele lekcji i wymagania to listy po
+   kilkanaście pozycji, czytane w całości. Rozluźniamy interlinię i odstępy. */
+
+.md-typeset .admonition > *:not(.admonition-title),
+.md-typeset details > *:not(summary) {
+  line-height: 1.75;
+}
+
+.md-typeset .admonition > *:first-of-type:not(.admonition-title),
+.md-typeset details > *:first-of-type:not(summary) {
+  margin-top: 0.55em;
+}
+
+.md-typeset .admonition ul,
+.md-typeset .admonition ol,
+.md-typeset details ul,
+.md-typeset details ol {
+  margin-block: 0.7em;
+}
+
+.md-typeset .admonition li,
+.md-typeset details li {
+  margin-block: 0.45em;
+  line-height: 1.7;
+  padding-inline-start: 0.15em;
+}
+
+.md-typeset .admonition li > p,
+.md-typeset details li > p {
+  margin-block: 0.2em;
+}
+
+/* Zagnieżdżony blok kodu w callout nie powinien mieć własnego tła, które
+   walczy z tłem karty. */
+.md-typeset .admonition .highlight > pre,
+.md-typeset details .highlight > pre {
+  border-radius: var(--ui-promien-maly);
+}
+
+/* ═════════════════════ 2. Nagłówek — przeszklony pasek ═════════════════════
+   Domyślnie nagłówek jest w kolorze primary i odcina się od reszty strony.
+   Zamiast tego: kolor tła strony z lekką przezroczystością, rozmycie tego,
+   co pod nim przewija, i jedna cienka linia u dołu. */
+
+.md-header {
+  background-color: var(--md-default-bg-color); /* zapas bez przezroczystości */
+  background-color: color-mix(in srgb, var(--md-default-bg-color) 86%, transparent);
+  color: var(--md-default-fg-color);
+  border-bottom: 1px solid var(--ui-linia);
+  box-shadow: none;
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+}
+
+/* Przeglądarki bez backdrop-filter dostają pasek nieprzezroczysty — bez tego
+   tekst przewijałby się widoczny przez nagłówek. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .md-header { background-color: var(--md-default-bg-color); }
+}
+
+.md-header__title,
+.md-header__topic,
+.md-header__button,
+.md-header__source {
+  color: var(--md-default-fg-color);
+}
+
+.md-header__button:hover,
+.md-header__source:hover {
+  opacity: 1;
+  color: var(--md-typeset-a-color);
+}
+
+/* Pole wyszukiwania: zamiast półprzezroczystej bieli — subtelna płytka
+   w kolorze tekstu, zaokrąglona jak reszta interfejsu. */
+.md-search__form {
+  background-color: color-mix(in srgb, var(--md-default-fg-color) 6%, transparent);
+  border: 1px solid var(--ui-linia);
+  border-radius: var(--ui-promien);
+  box-shadow: none;
+  transition: background-color 150ms, border-color 150ms;
+}
+
+.md-search__form:hover,
+[data-md-toggle="search"]:checked ~ .md-header .md-search__form {
+  background-color: color-mix(in srgb, var(--md-default-fg-color) 10%, transparent);
+  border-color: color-mix(in srgb, var(--md-typeset-a-color) 45%, transparent);
+}
+
+.md-search__input,
+.md-search__icon {
+  color: var(--md-default-fg-color);
+}
+
+.md-search__input::placeholder {
+  color: var(--md-default-fg-color--light);
+}
+
+/* Panel wyników — dopasowany promień i brak twardego cienia. */
+.md-search__output {
+  border-radius: 0 0 var(--ui-promien) var(--ui-promien);
+}
+
+/* ═════════════════════ 3. Lewa nawigacja — pigułki ═════════════════════ */
+
+.md-sidebar--primary .md-nav__link {
+  border-radius: var(--ui-promien-maly);
+  padding: 0.28rem 0.5rem;
+  margin-inline: -0.5rem;
+  transition: background-color 120ms, color 120ms;
+}
+
+.md-sidebar--primary .md-nav__link:hover {
+  background-color: color-mix(in srgb, var(--md-default-fg-color) 6%, transparent);
+  color: var(--md-default-fg-color);
+}
+
+.md-sidebar--primary .md-nav__link--active,
+.md-sidebar--primary .md-nav__link--active:hover {
+  background-color: color-mix(in srgb, var(--md-typeset-a-color) 15%, transparent);
+  color: var(--md-typeset-a-color);
+  font-weight: 600;
+}
+
+/* Nagłówki sekcji w lewej nawigacji: mniejsze, rozstrzelone, przygaszone —
+   mają porządkować, a nie konkurować z pozycjami. */
+.md-sidebar--primary .md-nav__title {
+  font-size: 0.63rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+  padding-inline: 0;
+}
+
+.md-sidebar--primary label.md-nav__title {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.8rem;
+}
+
+/* ═════════════════════ 4. Prawy spis treści (scrollspy) ═════════════════════
+   Mniejszy stopień pisma i przygaszony kolor, ale aktywna pozycja wyraźnie
+   się wyróżnia: kolor akcentu, pogrubienie i pionowa kreska na szynie. */
+
+.md-sidebar--secondary .md-nav__title {
+  /* Material dokłada tu cień przy przewijaniu — przy tak lekkim nagłówku
+     wygląda on jak przypadkowa kreska, więc go zdejmujemy. */
+  box-shadow: none !important;
+  background-color: transparent;
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+  margin-bottom: 0.3rem;
+}
+
+.md-sidebar--secondary .md-nav__list {
+  border-inline-start: 1px solid var(--ui-linia);
+}
+
+.md-sidebar--secondary .md-nav__item {
+  padding-inline-start: 0;
+}
+
+.md-sidebar--secondary .md-nav__link {
+  font-size: 0.66rem;
+  line-height: 1.55;
+  color: var(--md-default-fg-color--light);
+  padding-block: 0.22rem;
+  padding-inline-start: 0.7rem;
+  margin-inline-start: -1px;
+  border-inline-start: 2px solid transparent;
+  transition: color 120ms, border-color 120ms;
+}
+
+.md-sidebar--secondary .md-nav__link:hover {
+  color: var(--md-default-fg-color);
+  border-inline-start-color: color-mix(in srgb, var(--md-typeset-a-color) 40%, transparent);
+}
+
+.md-sidebar--secondary .md-nav__link--active,
+.md-sidebar--secondary .md-nav__link--active:hover {
+  color: var(--md-typeset-a-color);
+  font-weight: 600;
+  border-inline-start-color: var(--md-typeset-a-color);
+}
+
+/* Zagnieżdżone poziomy spisu — własna szyna zamiast dosuwania paddingiem. */
+.md-sidebar--secondary .md-nav .md-nav__list {
+  margin-inline-start: 0.55rem;
+}
+
+.md-sidebar--secondary .md-nav .md-nav__link {
+  padding-inline-start: 0.7rem;
+  font-size: 0.63rem;
+}
+
+/* ═════════════════════ 5. Typografia treści ═════════════════════
+   Domyślne odstępy Material są ciasne przy dłuższych materiałach czytanych
+   w całości. Rozluźniamy wiersz i wyraźniej oddzielamy sekcje od siebie. */
+
+.md-typeset {
+  line-height: 1.72;
+}
+
+.md-typeset h2 {
+  margin-top: 2.2em;
+  margin-bottom: 0.8em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--ui-linia);
+}
+
+.md-typeset h3 {
+  margin-top: 1.8em;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.8em;
+}
+
+.md-typeset p,
+.md-typeset ul,
+.md-typeset ol {
+  margin-block: 0.85em;
+}
+
+.md-typeset li {
+  margin-block: 0.35em;
+}
+
+.md-typeset li > ul,
+.md-typeset li > ol {
+  margin-block: 0.35em;
+}
+
+/* Tabele: bez ciężkiej ramki dookoła, z liniami tylko między wierszami. */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--ui-linia);
+  border-radius: var(--ui-promien);
+  box-shadow: none;
+  font-size: 0.68rem;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: color-mix(in srgb, var(--md-default-fg-color) 5%, transparent);
+  font-weight: 600;
+}
+
+.md-typeset table:not([class]) td {
+  border-top: 1px solid var(--ui-linia);
+}
+
+/* Cytat blokowy — pasek w kolorze akcentu zamiast szarej kreski. */
+.md-typeset blockquote {
+  border-inline-start: var(--ui-pasek) solid
+    color-mix(in srgb, var(--md-typeset-a-color) 55%, transparent);
+  color: var(--md-default-fg-color--light);
+  padding-inline-start: 0.9rem;
+}
+
+/* Kod: dopasowany promień i tło o jeden stopień odsunięte od tła strony. */
+.md-typeset code {
+  border-radius: var(--ui-promien-maly);
+  padding: 0.1em 0.35em;
+}
+
+.md-typeset pre > code,
+.md-typeset .highlight {
+  border-radius: var(--ui-promien);
+}
+
+/* Zakładki (pymdownx.tabbed, alternate_style) — podkreślenie zamiast ramki. */
+.md-typeset .tabbed-labels > label {
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
+.md-typeset .tabbed-set {
+  border-radius: var(--ui-promien);
+}
+
+/* Poziome linie rozdzielające — subtelniejsze niż domyślne. */
+.md-typeset hr {
+  border-bottom: 1px solid var(--ui-linia);
+  margin: 2em 0;
+}
+
+/* Przyciski .md-button — spójny promień z resztą interfejsu. */
+.md-typeset .md-button {
+  border-radius: var(--ui-promien-maly);
+  font-weight: 600;
+}
+
+/* Stopka: bez wyróżnionego tła, tylko linia u góry. */
+.md-footer {
+  background-color: transparent;
+  border-top: 1px solid var(--ui-linia);
+}
+
+.md-footer-meta {
+  background-color: transparent;
+}
+
+.md-footer__link:hover {
+  opacity: 1;
+  color: var(--md-typeset-a-color);
+}
+
+/* ═════════════════════ 7. Szerokość kolumny treści ═════════════════════
+   Sprawdzone pomiarem, nie na oko. Przy domyślnej siatce 61rem kolumna treści
+   ma 688 px, a średnia szerokość znaku w tym kroju i stopniu to 7,15 px —
+   czyli wiersz mieści już około 96 znaków. Zalecany zakres dla tekstu ciągłego
+   to 50–75 znaków; 96 jest powyżej niego, choć mieści się w tym, co stosuje
+   sama dokumentacja Material.
+
+   Poszerzanie pogarsza więc sprawę zamiast ją poprawiać:
+       64rem → 748 px → ok. 105 znaków
+       68rem → 828 px → ok. 116 znaków
+       72rem → 908 px → ok. 127 znaków
+
+   Dlatego siatka zostaje domyślna, a długi wiersz rekompensuje interlinia
+   podniesiona do 1,72 w sekcji 5. Gdyby kiedyś wracać do tematu, właściwym
+   ruchem jest ograniczenie szerokości samego tekstu (przy pozostawieniu
+   pełnej szerokości tabelom i blokom kodu), a nie rozsuwanie kolumny. */
+
+/* ═════════════════════ 6. Drobiazgi ═════════════════════ */
+
+/* Pasek przewijania w ciemnym schemacie — domyślny bywa jaskrawy. */
+[data-md-color-scheme="slate"] * {
+  scrollbar-color: color-mix(in srgb, var(--md-default-fg-color) 22%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+/* Zakotwiczenie nagłówków (permalink „#") — widoczne dopiero przy najechaniu. */
+.md-typeset .headerlink {
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.md-typeset :is(h1, h2, h3, h4, h5, h6):hover .headerlink,
+.md-typeset .headerlink:focus {
+  opacity: 0.55;
+}
+
+/* Wydruk: żadnych efektów szkła ani tła kart — oszczędzamy toner. */
+@media print {
+  .md-header { backdrop-filter: none; background: none; border: 0; }
+  .md-typeset .admonition,
+  .md-typeset details {
+    background: none;
+    border: 1px solid #999;
+    border-inline-start-width: var(--ui-pasek);
+  }
+}

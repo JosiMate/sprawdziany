@@ -1,0 +1,10 @@
+site/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+.vercel
+
+# pliki dostarczane przez aplikacje Claude — nie naleza do repozytorium
+Claude outputs/

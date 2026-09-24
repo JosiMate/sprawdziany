@@ -1,0 +1,64 @@
+site_name: Sprawdziany
+site_description: Prace klasowe z informatyki wykonywane przy komputerze — PCEiKZ Szczucin
+site_author: PCEiKZ Szczucin
+
+# Adres docelowy strony na GitHub Pages.
+site_url: https://josimate.github.io/sprawdziany/
+
+# Bez odnośnika do repozytorium w nagłówku i bez przycisku „Edytuj tę stronę":
+# w trakcie sprawdzianu uczeń nie ma tam czego szukać.
+copyright: PCEiKZ Szczucin — materiały do użytku edukacyjnego
+
+theme:
+  name: material
+  language: pl
+  icon:
+    logo: material/clipboard-check-outline
+  favicon: assets/favicon.png
+  palette:
+    # Te same dwa stany co w pozostałych serwisach: ciemny domyślny i jasny.
+    - scheme: slate
+      primary: red
+      accent: red
+      toggle:
+        icon: material/weather-night
+        name: Przełącz na tryb jasny
+    - scheme: default
+      primary: red
+      accent: red
+      toggle:
+        icon: material/weather-sunny
+        name: Przełącz na tryb ciemny
+  # Celowo bez navigation.instant: to jedna strona, a przeładowanie treści
+  # bez odświeżenia niczego tu nie daje, za to komplikuje start skryptu.
+  features:
+    - navigation.top
+    - content.code.copy
+
+extra_css:
+  # Najpierw style strony sprawdzianu, potem wspólna warstwa wyglądu powłoki
+  # (ta sama co w serwisach z materiałami), na końcu kolory tego serwisu.
+  - assets/sprawdzian.css
+  - stylesheets/extra.css
+  - stylesheets/motyw.css
+
+extra_javascript:
+  # docx.umd.js nie jest tu wymieniony — sprawdzian.js doczytuje go dopiero
+  # przy pierwszym kliknięciu „Pobierz jako dokument Word".
+  - assets/js/sprawdzian.js
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.keys
+
+# Pusta lista wtyczek wyłącza wyszukiwarkę. Na stronie sprawdzianu nie ma
+# czego szukać, a pole wyszukiwania w nagłówku tylko by rozpraszało.
+plugins: []
+
+extra:
+  generator: false

@@ -1,0 +1,168 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Strona sprawdzianu.
+
+   Pierwsza część to style pól karty pracy (klasy .kp-…) przeniesione bez
+   zmian z serwisów z materiałami — uczeń ma na sprawdzianie te same pola,
+   które zna z lekcji. Druga część (.sp-…) dotyczy tylko tej strony.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* --------------------------------------------------------- karta pracy */
+.kp { margin: 1.2em 0; }
+
+.kp-zadanie {
+  margin: 1.8em 0;
+  padding: 1.1em 1.3em;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: .35rem;
+  background: var(--md-code-bg-color);
+}
+.kp-zadanie h3 { margin: 0 0 .2em; font-size: 1.05rem; }
+.kp-poziom { margin: 0 0 .9em; font-size: .68rem; font-style: italic;
+             color: var(--md-default-fg-color--light); }
+.kp-polecenie { margin: 0 0 1em; }
+
+.kp-pole { display: block; margin: 1.1em 0 .4em; }
+.kp-pytanie { display: block; font-weight: 700; margin-bottom: .45em; }
+
+.kp textarea, .kp input[type="text"], .kp input[type="date"] {
+  width: 100%; padding: .5em .65em; font: inherit; font-size: .78rem;
+  color: var(--md-default-fg-color);
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lighter);
+  border-radius: .25rem;
+}
+.kp textarea { resize: vertical; min-height: 3.4em; line-height: 1.6; }
+.kp textarea:focus, .kp input:focus {
+  outline: 2px solid var(--md-accent-fg-color); outline-offset: -1px; border-color: transparent;
+}
+
+.kp-tabela { width: 100%; border-collapse: collapse; margin: .6em 0 1em; font-size: .78rem; }
+.kp-tabela th { width: 38%; text-align: left; padding: .35em .6em .35em 0;
+                font-weight: 700; vertical-align: middle; }
+.kp-tabela td { padding: .25em 0; }
+
+.kp-radiogrupa { display: flex; flex-wrap: wrap; gap: .5em 1.4em; }
+.kp-radio { display: inline-flex; align-items: center; gap: .4em; font-size: .8rem; }
+
+/* strefa na zrzut ekranu */
+.kp-zrzut {
+  margin: .9em 0 1.2em; border: 2px dashed var(--md-default-fg-color--lighter);
+  border-radius: .35rem; background: var(--md-default-bg-color); cursor: pointer;
+}
+.kp-zrzut:focus-visible, .kp-zrzut.kp-nad {
+  outline: none; border-color: var(--md-accent-fg-color);
+  background: var(--md-accent-fg-color--transparent);
+}
+.kp-zrzut-pusty { display: flex; flex-direction: column; gap: .35em;
+                  align-items: center; text-align: center; padding: 1.6em 1em; }
+.kp-zrzut-pusty strong { font-size: .82rem; }
+.kp-zrzut-pusty span { font-size: .7rem; color: var(--md-default-fg-color--light); }
+.kp-zrzut-jak .kp-wybierz {
+  background: none; border: none; padding: 0; font: inherit; font-size: inherit;
+  color: var(--md-accent-fg-color); text-decoration: underline; cursor: pointer;
+}
+.kp-zrzut-podglad { margin: 0; padding: .7em; text-align: center; }
+.kp-zrzut-podglad img { max-width: 100%; max-height: 22rem; border-radius: .25rem;
+                        border: 1px solid var(--md-default-fg-color--lightest); }
+.kp-usun-zrzut { display: block; margin: .6em auto 0; padding: .25em .8em;
+                 font-size: .68rem; cursor: pointer; border-radius: .2rem;
+                 border: 1px solid var(--md-default-fg-color--lighter);
+                 background: var(--md-default-bg-color); color: var(--md-default-fg-color); }
+
+/* Material nadaje figure regułą klasową display: flow-root, a klasa wygrywa
+   z wbudowanym [hidden] { display: none }. Skutek: pusta strefa na zrzut
+   ekranu pokazywała naraz zachętę „Kliknij i wklej" ORAZ podgląd z pustym
+   obrazkiem i przyciskiem „Usuń zrzut". Stąd !important — to jedyny sposób,
+   żeby atrybut hidden znaczył to, co znaczy. */
+.kp-zrzut-podglad[hidden],
+.kp-zrzut-pusty[hidden] { display: none !important; }
+
+/* Przycisk usuwający pracę stoi w osobnym wierszu, pod pobraniem Worda —
+   żeby nie dało się go kliknąć odruchowo zamiast akcji głównej. Wiersz łamie
+   pusty rozdzielacz .kp-luka. */
+.kp-luka { flex-basis: 100%; height: 0; margin: 0; }
+.kp-stopka .kp-wyczysc { margin-top: .3em; }
+@media screen and (max-width: 44em) {
+  .kp-stopka .md-button { flex: 1 1 auto; text-align: center; }
+}
+
+.kp-stopka { display: flex; flex-wrap: wrap; align-items: center; gap: .7em; margin-top: 1.6em; }
+.kp-stopka .md-button { margin: 0; }
+.kp-status { flex: 1 1 100%; margin: .3em 0 0; font-size: .74rem;
+             color: var(--md-default-fg-color--light); }
+.kp-status.kp-ok { color: #2e7d32; font-weight: 700; }
+.kp-status.kp-blad, .kp-blad { color: #c62828; font-weight: 700; }
+
+
+/* ═══════════════════════════ strona sprawdzianu ═══════════════════════════ */
+
+/* Pomoc pod aplikacją znika, gdy uczeń pracuje — skrypt ustawia hidden. */
+.sp-pomoc[hidden] { display: none !important; }
+.sp-w-pracy .md-content .md-typeset > h1 { display: none; }
+
+/* ── wczytanie arkusza ─────────────────────────────────────────────────── */
+.sp-upusc {
+  display: flex; flex-direction: column; align-items: center; gap: .8em;
+  margin: 1.2em 0; padding: 2.2em 1em; text-align: center;
+  border: 2px dashed var(--md-default-fg-color--lighter);
+  border-radius: var(--ui-promien, .4rem);
+}
+.sp-upusc.kp-nad {
+  border-color: var(--md-accent-fg-color);
+  background: var(--md-accent-fg-color--transparent);
+}
+.sp-upusc .md-button { margin: 0; font-size: .85rem; }
+.sp-upusc-opis { font-size: .74rem; color: var(--md-default-fg-color--light); }
+.sp-bledy { margin: .4em 0 0; font-weight: 400; }
+
+.sp-przyciski { display: flex; flex-wrap: wrap; gap: .7em; margin: .8em 0 .4em; }
+.sp-przyciski .md-button { margin: 0; }
+
+/* ── nagłówek arkusza ──────────────────────────────────────────────────── */
+.sp-tytul { margin: .4em 0 1.2em; }
+.md-typeset .sp-tytul h2 { margin: .1em 0 .2em; }
+.sp-przedmiot { margin: 0; font-size: .72rem; color: var(--md-default-fg-color--light); }
+.sp-grupa { margin: .2em 0 0; font-size: .9rem; }
+.sp-grupa strong {
+  display: inline-block; min-width: 1.8em; padding: 0 .45em; text-align: center;
+  border-radius: var(--ui-promien-maly, .3rem);
+  color: var(--md-primary-bg-color); background: var(--md-primary-fg-color);
+}
+.md-typeset .sp-zasady ul { margin-top: .4em; }
+.sp-legenda { font-size: .74rem; margin: .5em 0 .3em; border-collapse: collapse; }
+.sp-legenda td { padding: .15em .9em .15em 0; }
+
+/* ── polecenia ─────────────────────────────────────────────────────────── */
+.sp-polecenie {
+  margin: 1.3em 0 0; padding: .1em 0 .2em .9em;
+  border-left: .2rem solid var(--md-default-fg-color--lightest);
+  transition: border-color .2s ease;
+}
+.sp-polecenie.sp-zrobione { border-left-color: #2e7d32; }
+.sp-tresc { margin: 0 0 .6em; }
+.sp-nr { font-weight: 700; margin-right: .35em; }
+.sp-poziom {
+  display: inline-block; margin-right: .45em; padding: 0 .45em;
+  font-size: .68rem; font-weight: 700; line-height: 1.6; white-space: nowrap;
+  border-radius: var(--ui-promien-maly, .3rem);
+  border: 1px solid var(--md-typeset-a-color);
+  color: var(--md-typeset-a-color);
+}
+.sp-poziom.sp-kluczowe { color: var(--md-primary-bg-color); background: var(--md-typeset-a-color); }
+.sp-przed {
+  margin: 0 0 .8em; padding: .5em .8em; font-size: .78rem;
+  border-radius: var(--ui-promien-maly, .3rem); background: var(--md-default-bg-color);
+}
+.kp textarea.sp-mono, .kp input.sp-mono { font-family: var(--md-code-font-family); }
+
+/* ── stopka ─────────────────────────────────────────────────────────────── */
+.sp-postep { flex: 1 1 100%; margin: 0; font-size: .78rem; font-weight: 700; }
+.sp-zapis { flex: 1 1 100%; margin: 0; font-size: .66rem; color: var(--md-default-fg-color--light); }
+.sp-brak { font-weight: 400; color: var(--md-default-fg-color); }
+.kp-stopka .sp-zakoncz { font-size: .7rem; }
+.kp-stopka .sp-zakoncz.sp-po-pobraniu { border-color: #2e7d32; color: #2e7d32; }
+.kp-stopka .sp-zakoncz.sp-uzbrojony { border-color: #c62828; color: #fff; background: #c62828; }
+
+@media print {
+  .kp-stopka, .kp-zrzut-pusty, .sp-upusc { display: none !important; }
+}

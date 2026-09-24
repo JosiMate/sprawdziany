@@ -1,0 +1,40 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Motyw kolorystyczny serwisu „Sprawdziany" — wyprowadzony z ikony serwisu.
+
+   Ikona (docs/assets/favicon.png) to znak „✓" na arkuszu, na tle #b91c1c:
+   czerwień, czyli kolor, którego nie ma żaden serwis z materiałami (turkus
+   ASSO, bursztyn inf-lo, zieleń inf-sb, indygo wiai i lsbd, fiolet inf-tt).
+   Uczeń ma od razu widzieć, że jest na stronie sprawdzianu, a nie lekcji.
+
+   Kontrast (próg AA dla tekstu 4,5:1):
+       #b91c1c na białym         → 6,47:1  ✔ motyw jasny
+       #f87171 na tle slate      → 5,8:1   ✔ motyw ciemny
+       tekst #1f1315 na #f87171  → 6,53:1  ✔ napis na przycisku podstawowym
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-md-color-scheme="slate"][data-md-color-primary] {
+  --md-typeset-a-color: #f87171;
+  --md-primary-fg-color: #f87171;
+  --md-primary-fg-color--light: #fca5a5;
+  --md-primary-fg-color--dark: #b91c1c;
+  --md-accent-fg-color: #fca5a5;
+  --md-accent-fg-color--transparent: rgba(248, 113, 113, .12);
+  /* Biel na tej czerwieni ma za mały kontrast — napis na przycisku ciemny. */
+  --md-primary-bg-color: #1f1315;
+  --md-primary-bg-color--light: #1f1315;
+}
+
+[data-md-color-scheme="default"][data-md-color-primary] {
+  --md-typeset-a-color: #b91c1c;
+  --md-primary-fg-color: #b91c1c;
+  --md-primary-fg-color--light: #dc2626;
+  --md-primary-fg-color--dark: #991b1b;
+  --md-accent-fg-color: #991b1b;
+  --md-accent-fg-color--transparent: rgba(185, 28, 28, .08);
+  --md-primary-bg-color: #ffffff;
+  --md-primary-bg-color--light: #ffffff;
+}
+
+::selection {
+  background-color: color-mix(in srgb, var(--md-typeset-a-color) 28%, transparent);
+}
