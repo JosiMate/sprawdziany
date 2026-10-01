@@ -1,0 +1,28 @@
+# Końce linii pilnuje git, a nie edytor ani system.
+#
+# W repozytorium każdy plik tekstowy ma końce LF. Przy pobraniu na Windowsie
+# git zapisuje je w folderze roboczym jako CRLF, a przy commicie zamienia
+# z powrotem na LF. Dzięki temu `git status` nie pokazuje plików, w których
+# zmieniły się tylko końce linii.
+* text=auto
+
+# Skrypty powłoki zawsze z LF (uruchamia je Linux w GitHub Actions).
+*.sh text eol=lf
+
+# Pliki binarne — git nigdy nie zmienia w nich ani bajtu.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.pdf   binary
+*.docx  binary
+*.xlsx  binary
+*.pptx  binary
+*.zip   binary
+*.wasm  binary
+*.woff  binary
+*.woff2 binary
+*.db    binary
+*.sqlite binary

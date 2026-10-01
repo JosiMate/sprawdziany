@@ -1,0 +1,54 @@
+# Kontrola repozytorium: budowa strony, brak kluczy i scenariuszy w publicznym
+# repo oraz pilnowanie kluczy, pod którymi uczniowie mają zapisany postęp.
+# Działa na PR-ach (np. od Julesa) i po każdym pushu do main. Niczego nie publikuje.
+
+name: Kontrola
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kontrola-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kontrola:
+    name: Sprawdź
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pobierz repozytorium wraz z historią
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Przygotuj Pythona
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Zainstaluj zależności
+        run: pip install -r requirements.txt
+
+      - name: Zbuduj stronę (strict)
+        run: mkdocs build --strict
+
+      - name: Klucze i scenariusze nie mogą być w repozytorium
+        run: python .github/scripts/kontrola.py sekrety
+
+      - name: Identyfikatory kart pracy
+        run: python .github/scripts/kontrola.py struktura
+
+      - name: Postęp uczniów — czy klucze nie zniknęły
+        env:
+          OPIS_PR: ${{ github.event.pull_request.title }} ${{ github.event.pull_request.body }}
+          BAZA_PR: ${{ github.event.pull_request.base.sha }}
+          BAZA_PUSH: ${{ github.event.before }}
+        run: python .github/scripts/kontrola.py klucze --base "${BAZA_PR:-$BAZA_PUSH}"
