@@ -358,8 +358,9 @@
     const a = rekord.arkusz, odp = rekord.odpowiedzi || {};
     const nr = maWartosc(odp._nr) ? `numer w dzienniku <strong>${esc(odp._nr)}</strong>` : "bez wpisanego numeru";
     const zrobione = wszystkichPolecen(a) - bezOdpowiedzi(a, odp).length;
-    const pobrana = rekord.pobrano
-      ? `<p><strong>Dokument Word z tej pracy został już pobrany ${esc(kiedy(rekord.pobrano))}.</strong></p>` : "";
+    const pobrana = (rekord.wyslano
+      ? `<p><strong>Ta praca została już wysłana do nauczyciela ${esc(rekord.wyslano.odebrano || "")}.</strong></p>` : "") +
+      (rekord.pobrano ? `<p><strong>Dokument Word z tej pracy został już pobrany ${esc(kiedy(rekord.pobrano))}.</strong></p>` : "");
     host.innerHTML = `<div class="admonition warning sp-cudza">
       <p class="admonition-title">Na tym komputerze jest rozpoczęta praca</p>
       <p><strong>${esc(a.tytul)}</strong>${a.grupa ? ` · grupa ${esc(a.grupa)}` : ""} · ${nr} ·
@@ -368,8 +369,8 @@
       <p>Jeżeli to <strong>twoja</strong> praca — na przykład przeglądarka się zamknęła — wróć do niej.
         Jeżeli nie — zacznij od nowa. Tamte odpowiedzi zostaną wtedy usunięte z tego komputera.</p>
       <div class="sp-przyciski">
-        <button type="button" class="md-button ${rekord.pobrano ? "" : "md-button--primary"} sp-moja">To moja praca — wracam do niej</button>
-        <button type="button" class="md-button ${rekord.pobrano ? "md-button--primary" : ""} sp-nie-moja">To nie moja — zaczynam od nowa</button>
+        <button type="button" class="md-button ${rekord.pobrano || rekord.wyslano ? "" : "md-button--primary"} sp-moja">To moja praca — wracam do niej</button>
+        <button type="button" class="md-button ${rekord.pobrano || rekord.wyslano ? "md-button--primary" : ""} sp-nie-moja">To nie moja — zaczynam od nowa</button>
       </div></div>`;
     host.querySelector(".sp-moja").addEventListener("click", () => widokPraca(host, rekord));
     host.querySelector(".sp-nie-moja").addEventListener("click", async () => {
@@ -476,12 +477,16 @@
                 value="${esc(odp._nr || "")}" placeholder="np. 12"></td></tr>
           <tr><th scope="row">Klasa</th>
             <td><input type="text" data-pole="_klasa" value="${esc(odp._klasa || a.klasa || "")}"></td></tr>
+          ${host.dataset.odbior ? `<tr><th scope="row">Kod z karteczki</th>
+            <td><input type="text" data-pole="_kod" autocomplete="off" spellcheck="false" maxlength="7"
+                class="sp-kod" value="${esc(odp._kod || "")}" placeholder="5 znaków, np. K7MPQ"></td></tr>` : ""}
         </tbody></table>
       </div>
       ${zadania}
       <div class="kp-stopka">
         <p class="sp-postep" aria-live="polite"></p>
-        <button type="button" class="kp-generuj md-button md-button--primary">Pobierz jako dokument Word</button>
+        ${host.dataset.odbior ? `<button type="button" class="sp-wyslij md-button md-button--primary">Wyślij do nauczyciela</button>` : ""}
+        <button type="button" class="kp-generuj md-button${host.dataset.odbior ? "" : " md-button--primary"}">Pobierz jako dokument Word</button>
         <span class="kp-luka" aria-hidden="true"></span>
         <button type="button" class="sp-zakoncz md-button">Zakończ i usuń odpowiedzi z tego komputera</button>
         <p class="kp-status" role="status" aria-live="polite"></p>
@@ -614,15 +619,72 @@
       } finally { btn.disabled = false; }
     });
 
+    /* Wysłanie do nauczyciela: skrypt Google nauczyciela (adres w data-odbior)
+       sprawdza kod z karteczki i zapisuje pracę na jego Dysku. Treść jako
+       text/plain — wtedy przeglądarka nie pyta skryptu o zgodę (CORS)
+       i można odczytać odpowiedź z numerem potwierdzenia. */
+    const wyslij = host.querySelector(".sp-wyslij");
+    if (wyslij) wyslij.addEventListener("click", async () => {
+      const kod = String(odp._kod || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (!maWartosc(odp._nr)) { blad(status, "Wpisz najpierw numer w dzienniku."); host.querySelector('[data-pole="_nr"]').focus(); return; }
+      if (kod.length !== 5) { blad(status, "Wpisz kod z karteczki — 5 znaków. Nie masz karteczki? Zawołaj nauczyciela albo pobierz dokument Word."); host.querySelector('[data-pole="_kod"]').focus(); return; }
+      const brak = bezOdpowiedzi(a, odp);
+      wyslij.disabled = true;
+      status.textContent = "Wysyłam pracę…"; status.className = "kp-status";
+      try {
+        await zapiszTeraz();
+        const pola = Object.fromEntries(ukrytePola(a, odp).map((x) => [x.name, x.value === "-" ? "" : x.value]));
+        const odpowiedzi = {};
+        a.zadania.forEach((z) => (z.polecenia || []).forEach((p) => (p.pola || []).forEach((pole) =>
+          idPol({ ...pole, typ: pole.typ || "tekst" }).forEach((id) => { if (id && maWartosc(odp[id])) odpowiedzi[id] = String(odp[id]); }))));
+        const tresc = JSON.stringify({ klasa: pola.klasa, numer: pola.numer, kod,
+          karta_id: pola.karta_id, karta_sufiks: pola.karta_sufiks, karta_tytul: pola.karta_tytul, serwis: pola.serwis,
+          grupa: pola.grupa, arkusz_id: pola.arkusz_id, wypelnione: Number(pola.wypelnione), wszystkie: Number(pola.wszystkie),
+          wygenerowano: pola.wygenerowano, odpowiedzi });
+        let w;
+        try {
+          const resp = await fetch(host.dataset.odbior, { method: "POST", body: tresc,
+            headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow" });
+          w = await resp.json();
+        } catch {
+          blad(status, "Nie udało się połączyć z serwerem nauczyciela. Sprawdź internet i spróbuj jeszcze raz — " +
+            "albo pobierz dokument Word i oddaj go w dzienniku."); return;
+        }
+        if (w && w.ok) {
+          rekord.wyslano = { odebrano: w.odebrano || "", potwierdzenie: w.potwierdzenie || "" };
+          await zapiszTeraz();
+          status.innerHTML = `<strong>Praca dotarła do nauczyciela</strong> ${esc(w.odebrano || "")}. ` +
+            `Numer potwierdzenia: <strong>${esc(w.potwierdzenie || "")}</strong> — zapisz go. ` +
+            "Teraz kliknij <strong>Zakończ i usuń odpowiedzi</strong>." +
+            (brak.length ? `<br><span class="sp-brak">Bez odpowiedzi: ${esc(brak.join(", "))}. Jeżeli to przeoczenie, uzupełnij i wyślij jeszcze raz — nauczyciel zobaczy obie wersje.</span>` : "");
+          status.className = "kp-status kp-ok";
+          host.querySelector(".sp-zakoncz").classList.add("sp-po-pobraniu");
+          return;
+        }
+        const komunikaty = {
+          zly_kod: `Ten kod nie pasuje do numeru ${esc(odp._nr)} w klasie ${esc(pola.klasa)}. Sprawdź numer, klasę i kod.` +
+            (w.pozostalo != null ? ` Zostało prób: ${esc(w.pozostalo)}.` : ""),
+          zablokowane: "Za dużo złych kodów dla tego numeru — wysyłanie jest zablokowane na godzinę. Zawołaj nauczyciela.",
+          za_czesto: "Za dużo wysyłek w krótkim czasie. Odczekaj kilka minut.",
+          za_duze: "Praca jest za duża do wysłania (zrzuty ekranu). Pobierz dokument Word i oddaj go w dzienniku.",
+          brak_danych: "Brakuje numeru, klasy albo kodu.",
+          nieskonfigurowane: "Odbiór prac nie jest jeszcze włączony. Pobierz dokument Word i oddaj go w dzienniku.",
+        };
+        blad(status, komunikaty[w && w.blad] || "Serwer nauczyciela nie przyjął pracy. Pobierz dokument Word i oddaj go w dzienniku.");
+      } finally { wyslij.disabled = false; }
+    });
+
     /* Usunięcie pracy — bez okienka potwierdzenia, ale na dwa kliknięcia:
        pierwsze zamienia napis na pytanie, drugie w ciągu kilku sekund usuwa. */
     const zakoncz = host.querySelector(".sp-zakoncz");
     let uzbrojony = null;
     zakoncz.addEventListener("click", async () => {
       if (!uzbrojony) {
-        zakoncz.textContent = rekord.pobrano
-          ? "Plik wysłany? Kliknij jeszcze raz, żeby usunąć odpowiedzi"
-          : "Nie pobrano jeszcze dokumentu! Kliknij jeszcze raz, żeby mimo to usunąć";
+        zakoncz.textContent = rekord.wyslano
+          ? "Praca wysłana. Kliknij jeszcze raz, żeby usunąć odpowiedzi"
+          : rekord.pobrano
+            ? "Plik wysłany? Kliknij jeszcze raz, żeby usunąć odpowiedzi"
+            : "Praca nie jest ani wysłana, ani pobrana! Kliknij jeszcze raz, żeby mimo to usunąć";
         zakoncz.classList.add("sp-uzbrojony");
         uzbrojony = setTimeout(() => {
           uzbrojony = null;

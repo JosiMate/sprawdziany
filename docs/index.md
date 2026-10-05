@@ -7,7 +7,7 @@ hide:
 
 # Sprawdzian przy komputerze
 
-<div id="sprawdzian" class="sprawdzian">
+<div id="sprawdzian" class="sprawdzian" data-odbior="https://script.google.com/macros/s/AKfycbwhTDRRQxYs5eECosEyMZ-r0B-jSORYTbSuxw5_c2pepxbGe1MFf_IJgrShjLCM8utm/exec">
   <p>Wczytywanie strony…</p>
   <noscript><p class="kp-blad">Ta strona potrzebuje JavaScriptu. Włącz go w przeglądarce
   albo zawołaj nauczyciela.</p></noscript>
@@ -20,12 +20,13 @@ hide:
 1. Na początku lekcji dostajesz **plik arkusza** — z dziennika VULCAN albo z Dysku Google.
    Pobierz go na komputer.
 2. Kliknij **Wczytaj arkusz** i wskaż ten plik. Pojawią się zadania i pola na odpowiedzi.
-3. Wpisz **numer w dzienniku** i rozwiązuj. Odpowiedzi zapisują się same na tym komputerze —
+3. Wpisz **numer w dzienniku** i **kod z karteczki** od nauczyciela, potem rozwiązuj. Odpowiedzi zapisują się same na tym komputerze —
    gdy przeglądarka się zamknie, otwórz tę stronę jeszcze raz i wybierz *To moja praca*.
 4. Zrzuty ekranu robisz skrótem ++win+shift+s++ i wklejasz w ramkę przez ++ctrl+v++.
-5. Na koniec kliknij **Pobierz jako dokument Word** i dołącz plik w *Zadaniach domowych*
-   w dzienniku. Nazwa pliku ustawia się sama.
-6. Gdy plik jest wysłany, kliknij **Zakończ i usuń odpowiedzi z tego komputera**.
+5. Na koniec kliknij **Wyślij do nauczyciela**. Zobaczysz godzinę odbioru i numer
+   potwierdzenia — zapisz go. Gdy wysyłanie nie działa, kliknij **Pobierz jako dokument Word**
+   i dołącz plik w *Zadaniach domowych* w dzienniku.
+6. Gdy praca jest wysłana, kliknij **Zakończ i usuń odpowiedzi z tego komputera**.
 
 !!! tip "Chcesz spróbować przed sprawdzianem?"
 
@@ -34,9 +35,12 @@ hide:
 
 ??? question "Co widzi nauczyciel, a co zostaje na komputerze?"
 
-    Strona nie wysyła nigdzie twoich odpowiedzi. Leżą wyłącznie w przeglądarce, na komputerze,
-    przy którym piszesz — dopóki ich nie usuniesz przyciskiem *Zakończ*. Nauczyciel dostaje
-    tylko ten dokument Word, który sam dołączysz w dzienniku.
+    W trakcie pracy odpowiedzi leżą wyłącznie w przeglądarce, na komputerze, przy którym piszesz —
+    dopóki ich nie usuniesz przyciskiem *Zakończ*. Do nauczyciela trafiają dopiero, gdy klikniesz
+    **Wyślij do nauczyciela**: klasa, numer w dzienniku i odpowiedzi (bez imienia i nazwiska)
+    zapisują się na Dysku Google nauczyciela. Kod z karteczki pilnuje, żeby nikt nie wysłał
+    pracy za ciebie. Jeżeli zamiast tego pobierzesz dokument Word, nauczyciel dostanie tylko to,
+    co sam dołączysz w dzienniku.
 
     Kto otworzy stronę po tobie i zastanie twoją pracę, zobaczy jedynie pytanie, czy to jego
     praca, z twoim numerem w dzienniku — i może ją usunąć. Praca zostawiona na komputerze dłużej

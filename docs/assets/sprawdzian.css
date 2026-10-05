@@ -166,3 +166,6 @@
 @media print {
   .kp-stopka, .kp-zrzut-pusty, .sp-upusc { display: none !important; }
 }
+
+/* Kod z karteczki (wysyłanie do nauczyciela) */
+.kp-tabela input.sp-kod { text-transform: uppercase; letter-spacing: .12em; font-family: var(--md-code-font-family, monospace); }
