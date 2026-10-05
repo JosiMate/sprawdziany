@@ -698,6 +698,49 @@
     i.src = dataUrl;
   });
 
+  /* ─────────────────────────── ukryte pola ───────────────────────────
+     Właściwości niestandardowe dokumentu Word (Plik → Informacje →
+     Właściwości) — te same nazwy co w karcie pracy z serwisów z materiałami
+     (karta.js). Czyta je panel „Kontrola kart pracy” i skrypt
+     sprawdz_karty.py nauczyciela. Tylko klasa, numer i temat — bez nazwisk.
+     Grupy A i B jednej pracy klasowej mają w panelu wspólny temat
+     („karta_id”); do sprawdzania kluczem służy „arkusz_id” danej grupy. */
+  function wspolneId(a) {
+    if (a.sprawdzian) return String(a.sprawdzian);
+    const id = String(a.id || "");
+    return a.grupa ? id.replace(new RegExp(`[-_]${String(a.grupa).replace(/[^\w]/g, "")}$`, "i"), "") : id;
+  }
+  function ukrytePola(a, odp) {
+    const ids = [];
+    a.zadania.forEach((z) => (z.polecenia || []).forEach((p) => (p.pola || []).forEach((pole) =>
+      idPol({ ...pole, typ: pole.typ || "tekst" }).forEach((id) => id && ids.push(id)))));
+    const wyp = ids.filter((id) => maWartosc(odp[id])).length;
+    const tekstOdp = ids.slice().sort().filter((id) => maWartosc(odp[id]))
+      .map((id) => `${id}=${String(odp[id]).trim().toLowerCase().replace(/\s+/g, " ")}`).join("\n");
+    let skrot = 0x811c9dc5;
+    for (let i = 0; i < tekstOdp.length; i++) { skrot ^= tekstOdp.charCodeAt(i); skrot = Math.imul(skrot, 0x01000193) >>> 0; }
+    const kopia = Object.fromEntries(ids.filter((id) => maWartosc(odp[id])).map((id) => {
+      const w = String(odp[id]);
+      return [id, w.startsWith("data:image/") ? "[zrzut]" : w];
+    }));
+    return [
+      ["pceikz_format", "sprawdzian-1"],
+      ["karta_id", wspolneId(a)],
+      ["arkusz_id", a.id || ""],
+      ["grupa", a.grupa || ""],
+      ["karta_sufiks", String(a.plik || "").toUpperCase()],
+      ["karta_tytul", `${a.rodzaj || "Sprawdzian"}: ${a.tytul || ""}`],
+      ["serwis", (location.pathname.split("/").filter(Boolean)[0]) || location.hostname],
+      ["klasa", odp._klasa || a.klasa || ""],
+      ["numer", odp._nr || ""],
+      ["wygenerowano", new Date().toISOString()],
+      ["wypelnione", String(wyp)],
+      ["wszystkie", String(ids.length)],
+      ["odpowiedzi_skrot", tekstOdp ? skrot.toString(16) : ""],
+      ["odpowiedzi_json", JSON.stringify(kopia)],
+    ].map(([name, value]) => ({ name, value: String(value) || "-" }));
+  }
+
   /* ─────────────────────────── dokument Word ─────────────────────────── */
   async function generuj(rekord) {
     await zaladujDocx();
@@ -838,6 +881,7 @@
     const stopkaTekst = [a.rodzaj || "Sprawdzian", odp._klasa || a.klasa,
       "nr " + odp._nr, a.grupa && "grupa " + a.grupa].filter(Boolean).join(" · ");
     const doc = new Document({
+      customProperties: ukrytePola(a, odp),
       creator: a.przedmiot || "Sprawdzian", title: `${a.rodzaj || "Sprawdzian"} — ${a.tytul}`,
       styles: { default: { document: { run: { font: "Calibri", size: 21 } } } },
       sections: [{

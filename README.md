@@ -35,6 +35,20 @@ lekcji (Dysk Google z dostępem ograniczonym albo załącznik w dzienniku).
   z materiałami i nie zajmują ich miejsca (localStorage ma ~5 MB wspólne dla całego
   `josimate.github.io`).
 
+## Panel kontroli prac i sprawdzanie kluczem
+
+Dokument Word ma ukryte właściwości (Plik → Informacje → Właściwości), te same co karta
+pracy z serwisów z materiałami: klasa, numer, `karta_id`, tytuł, liczba wypełnionych pól
+i kopia odpowiedzi (zrzuty jako `[zrzut]`). Bez nazwisk.
+
+- `karta_id` jest wspólny dla grup A i B jednej pracy — pole `sprawdzian` w arkuszu albo
+  `id` bez końcówki grupy (`1tt-dzial1-2026-a` → `1tt-dzial1-2026`). W panelu
+  „Kontrola kart pracy” to jeden temat; termin to dzień sprawdzianu.
+- `arkusz_id` to `id` arkusza danej grupy — według niego `sprawdz_karty.py` szuka klucza
+  `_materialy-nauczycielskie/<klasa>/klucze/<arkusz_id>.json`.
+- Tematy do panelu zbiera `narzedzia/katalog_kart.py` z arkuszy w
+  `_materialy-nauczycielskie/<klasa>` (tylko tytuł i klasa).
+
 ## Format arkusza
 
 Plik JSON. Treści poleceń mogą zawierać `<strong>`, `<em>`, `<code>`, `<kbd>`, `<br>`,
