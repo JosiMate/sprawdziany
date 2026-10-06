@@ -46,6 +46,8 @@ extra_javascript:
   # docx.umd.js nie jest tu wymieniony — sprawdzian.js doczytuje go dopiero
   # przy pierwszym kliknięciu „Pobierz jako dokument Word".
   - assets/js/sprawdzian.js
+  # „Moje informacje zwrotne” (strona informacje-zwrotne.md) — komentarze nauczyciela po kodzie z karteczki
+  - assets/js/informacje.js
 
 markdown_extensions:
   - admonition
