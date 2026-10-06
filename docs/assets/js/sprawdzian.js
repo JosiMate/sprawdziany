@@ -634,13 +634,25 @@
       try {
         await zapiszTeraz();
         const pola = Object.fromEntries(ukrytePola(a, odp).map((x) => [x.name, x.value === "-" ? "" : x.value]));
+        /* Cały dokument Word jedzie razem z odpowiedziami (nauczyciel przegląda
+           go na Dysku); zrzuty są w Wordzie, więc w odpowiedziach tylko znacznik. */
+        let word = null;
+        try {
+          status.textContent = "Składam dokument Word…";
+          const g = await generuj(rekord, { tylkoPlik: true });
+          word = { nazwa: g.nazwa, b64: await naBase64(g.blob) };
+        } catch { word = null; }
+        status.textContent = "Wysyłam pracę…";
         const odpowiedzi = {};
         a.zadania.forEach((z) => (z.polecenia || []).forEach((p) => (p.pola || []).forEach((pole) =>
-          idPol({ ...pole, typ: pole.typ || "tekst" }).forEach((id) => { if (id && maWartosc(odp[id])) odpowiedzi[id] = String(odp[id]); }))));
+          idPol({ ...pole, typ: pole.typ || "tekst" }).forEach((id) => {
+            if (id && maWartosc(odp[id])) odpowiedzi[id] = word && String(odp[id]).startsWith("data:image") ? "[zrzut]" : String(odp[id]);
+          }))));
         const tresc = JSON.stringify({ klasa: pola.klasa, numer: pola.numer, kod,
           karta_id: pola.karta_id, karta_sufiks: pola.karta_sufiks, karta_tytul: pola.karta_tytul, serwis: pola.serwis,
           grupa: pola.grupa, arkusz_id: pola.arkusz_id, wypelnione: Number(pola.wypelnione), wszystkie: Number(pola.wszystkie),
-          wygenerowano: pola.wygenerowano, odpowiedzi });
+          wygenerowano: pola.wygenerowano, odpowiedzi,
+          docx: word ? word.b64 : "", docx_nazwa: word ? word.nazwa : "" });
         let w;
         try {
           const resp = await fetch(host.dataset.odbior, { method: "POST", body: tresc,
@@ -653,7 +665,7 @@
         if (w && w.ok) {
           rekord.wyslano = { odebrano: w.odebrano || "", potwierdzenie: w.potwierdzenie || "" };
           await zapiszTeraz();
-          status.innerHTML = `<strong>Praca dotarła do nauczyciela</strong> ${esc(w.odebrano || "")}. ` +
+          status.innerHTML = `<strong>Praca dotarła do nauczyciela</strong>${w.word ? " razem z dokumentem Word" : ""} ${esc(w.odebrano || "")}. ` +
             `Numer potwierdzenia: <strong>${esc(w.potwierdzenie || "")}</strong> — zapisz go. ` +
             "Teraz kliknij <strong>Zakończ i usuń odpowiedzi</strong>." +
             (brak.length ? `<br><span class="sp-brak">Bez odpowiedzi: ${esc(brak.join(", "))}. Jeżeli to przeoczenie, uzupełnij i wyślij jeszcze raz — nauczyciel zobaczy obie wersje.</span>` : "");
@@ -804,7 +816,16 @@
   }
 
   /* ─────────────────────────── dokument Word ─────────────────────────── */
-  async function generuj(rekord) {
+  /* Plik → base64 (bez nagłówka data:), do wysłania Worda razem z odpowiedziami. */
+  const naBase64 = (blob) => new Promise((ok, zle) => {
+    const fr = new FileReader();
+    fr.onload = () => ok(String(fr.result).split(",")[1] || "");
+    fr.onerror = () => zle(fr.error);
+    fr.readAsDataURL(blob);
+  });
+
+  /* opcje.tylkoPlik — zwraca { blob, nazwa } bez pobierania (wysyłka do nauczyciela). */
+  async function generuj(rekord, opcje = {}) {
     await zaladujDocx();
     const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType,
             ImageRun, AlignmentType, BorderStyle, HeadingLevel, Footer, PageNumber } = docx;
@@ -962,6 +983,7 @@
       .replace(/[^\w-]/g, "");
     const nr = bezOgonkow(odp._nr) || "brak-numeru";
     const nazwa = `nr${nr}-${bezOgonkow(a.plik || a.id) || "sprawdzian"}.docx`;
+    if (opcje.tylkoPlik) return { blob, nazwa };
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url; link.download = nazwa; document.body.appendChild(link); link.click();
