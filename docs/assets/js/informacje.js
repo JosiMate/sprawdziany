@@ -134,7 +134,7 @@
     });
   }
 
-  /* Style tylko tego widżetu — wstrzykiwane raz, żeby nie ruszać wspólnego extra.css
+  /* Style tylko tego widżetu i przycisku na belce — wstrzykiwane raz, żeby nie ruszać wspólnego extra.css
      i żeby działały tak samo w każdym serwisie (także w sprawdzianach). */
   function style() {
     if (document.getElementById("iz-style")) return;
@@ -160,15 +160,50 @@
       .iz-komentarz p { margin: .3rem 0; }
       .iz-dalej { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; }
       .iz-dalej .md-button, .iz-przeczytane .md-button { margin: 0; font-size: .75rem; padding: .3em 1em; }
-      .iz-przeczytane { font-size: .75rem; color: var(--md-default-fg-color--light); margin: .4rem 0 0; }`;
+      .iz-przeczytane { font-size: .75rem; color: var(--md-default-fg-color--light); margin: .4rem 0 0; }
+      .iz-naglowek { display: inline-flex; align-items: center; gap: .35rem; flex-shrink: 0; margin: 0 .4rem;
+        padding: .3rem .6rem; border-radius: .3rem; color: inherit; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+      .iz-naglowek:hover, .iz-naglowek:focus-visible { color: inherit; background: rgba(255, 255, 255, .12); }
+      .iz-naglowek.iz-tu { background: rgba(255, 255, 255, .2); }
+      .iz-naglowek svg { width: 1.2rem; height: 1.2rem; fill: currentColor; }
+      @media screen and (max-width: 59.984em) { .iz-naglowek span { display: none; } .iz-naglowek { margin: 0 .2rem; padding: .4rem; } }`;
     document.head.appendChild(st);
   }
 
+  /* Stały przycisk na górnej belce (przed wyszukiwarką) — widoczny na każdej
+     stronie serwisu, prowadzi do „Moje informacje zwrotne”. Wstawiany z JS,
+     żeby nie trzeba było nadpisywać szablonu Material w 7 serwisach. */
+  const IKONA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m-9.5 12L7 10.5l1.41-1.41 2.09 2.08 5.09-5.08L17 7.5z"/></svg>';
+
+  function adresStrony() {
+    try { if (typeof __md_scope !== "undefined") return new URL("informacje-zwrotne/", __md_scope).href; } catch { /* dalej */ }
+    const zMenu = document.querySelector('a.md-nav__link[href$="informacje-zwrotne/"]');
+    return zMenu ? zMenu.href : new URL("informacje-zwrotne/", document.baseURI).href;
+  }
+
+  function przyciskWNaglowku() {
+    const belka = document.querySelector(".md-header__inner");
+    if (!belka) return;
+    let a = belka.querySelector(".iz-naglowek");
+    if (!a) {
+      a = document.createElement("a");
+      a.className = "iz-naglowek";
+      a.href = adresStrony();
+      a.title = "Moje informacje zwrotne — komentarze nauczyciela do Twoich prac";
+      a.innerHTML = IKONA + "<span>Informacje zwrotne</span>";
+      const przed = belka.querySelector('label.md-header__button[for="__search"]') ||
+        belka.querySelector(".md-search") || belka.querySelector(".md-header__source");
+      if (przed) belka.insertBefore(a, przed); else belka.appendChild(a);
+    }
+    const tu = /\/informacje-zwrotne\/?(index\.html)?$/.test(location.pathname);
+    a.classList.toggle("iz-tu", tu);
+    if (tu) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  }
+
   function start() {
-    const hosty = document.querySelectorAll(".informacje-zwrotne");
-    if (!hosty.length) return;
     style();
-    hosty.forEach(zbuduj);
+    przyciskWNaglowku();
+    document.querySelectorAll(".informacje-zwrotne").forEach(zbuduj);
   }
   // Material przeładowuje treść bez odświeżania strony — trzeba wpiąć się w document$
   if (typeof document$ !== "undefined") document$.subscribe(start);
