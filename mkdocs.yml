@@ -48,6 +48,8 @@ extra_javascript:
   - assets/js/sprawdzian.js
   # „Moje informacje zwrotne” (strona informacje-zwrotne.md) — komentarze nauczyciela po kodzie z karteczki
   - assets/js/informacje.js
+  # samoocena przy „Kryteriach sukcesu” + strona „Mój postęp” (tylko localStorage ucznia)
+  - assets/js/samoocena.js
 
 markdown_extensions:
   - admonition
