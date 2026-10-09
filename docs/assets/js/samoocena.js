@@ -177,6 +177,16 @@
     document.head.appendChild(st);
   }
 
+  /* Dla karty pracy („Wyślij do nauczyciela”): samoocena kryteriów z tej strony. */
+  window.Samoocena = {
+    naStronie() {
+      const d = wczytaj();
+      return [...document.querySelectorAll("li[data-so-id]")]
+        .map((li) => ({ t: li.dataset.soTekst || "", o: d[li.dataset.soId]?.o || "" }))
+        .filter((x) => x.t && x.o);
+    },
+  };
+
   function start() {
     const ramki = ramkiKryteriow();
     const hosty = document.querySelectorAll(".moj-postep");
