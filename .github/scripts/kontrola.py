@@ -152,6 +152,28 @@ def spisy(rewizja):
     return wynik
 
 
+def zmienione(rewizja):
+    """{klucz spisu: {stary tytuł: nowy tytuł}} z atrybutu data-zmienione (przeniesienie w postep.js)."""
+    wynik = {}
+    for sciezka in pliki(rewizja):
+        if not (sciezka.startswith("docs/") and sciezka.endswith(".md")):
+            continue
+        tekst = tresc(rewizja, sciezka)
+        for m in re.finditer(r'<div\s+[^>]*class="spis-tematow"[^>]*>', tekst):
+            nazwa = re.search(r'data-postep="([^"]+)"', m.group(0))
+            zm = re.search(r"data-zmienione='([^']*)'", m.group(0))
+            if not (nazwa and zm):
+                continue
+            try:
+                mapa = json.loads(zm.group(1))
+            except ValueError:
+                bledy.append((sciezka, "Atrybut data-zmienione nie jest poprawnym JSON-em."))
+                continue
+            wynik.setdefault(nazwa.group(1), {}).update(
+                {czysty(s): czysty(n) for s, n in mapa.items()})
+    return wynik
+
+
 # ------------------------------------------------------------- porównanie
 def klucze(baza):
     if not baza or set(baza) == {"0"} or subprocess.run(
@@ -176,12 +198,14 @@ def klucze(baza):
                                 "Odpowiedzi uczniów w tych polach przepadną."))
 
     s_stare, s_nowe = spisy(baza), spisy("HEAD")
+    przeniesienia = zmienione("HEAD")
     for klucz, tytuly in s_stare.items():
         if klucz not in s_nowe:
             ostrzezenia.append((None, f"Spis tematów „{klucz}” zniknął albo zmieniło się jego data-postep. "
                                 "Uczniowie stracą zaznaczenia przerobionych tematów."))
             continue
-        brak = sorted(tytuly - s_nowe[klucz])
+        mapa = przeniesienia.get(klucz, {})
+        brak = sorted(t for t in tytuly - s_nowe[klucz] if mapa.get(t) not in s_nowe[klucz])
         if brak:
             ostrzezenia.append((None, f"W spisie „{klucz}” zmieniły się albo zniknęły tytuły wierszy: "
                                 + "; ".join(brak) + ". Zaznaczenia przy nich przepadną."))

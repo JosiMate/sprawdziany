@@ -24,6 +24,8 @@
   --ui-promien-maly: 0.3rem;
   /* Szerokość paska akcentu przy callout — odpowiednik border-l-4. */
   --ui-pasek: 0.2rem;
+  /* Pasek akcentu przy callout — grubszy, jak w widżecie rozgrzewki. */
+  --ui-pasek-callout: 0.25rem;
   /* Krycie tła karty callout — kilka procent koloru typu domieszane do tła
      strony. Tyle wystarczy, żeby karta była widoczna, a nie krzyczała. */
   --ui-tlo-callout: 4.5%;
@@ -42,20 +44,25 @@
 }
 
 /* ═══════════════════════════ 1. Karty callout ═══════════════════════════
-   Material domyślnie rysuje ramkę dookoła całej karty i dokłada cień.
-   Zostawiamy wyłącznie pasek po lewej — reszta karty opiera się na tle
-   w kolorze typu, rozcieńczonym do kilku procent. Prawe rogi zaokrąglone,
-   lewe płaskie, żeby pasek czytał się jako pasek, a nie jako obwódka. */
+   Ten sam wygląd co widżet losowej rozgrzewki: cienka obwódka dookoła,
+   wyraźniejszy pasek akcentu po lewej i wszystkie cztery rogi zaokrąglone
+   (--ui-promien). Tło karty to kolor typu rozcieńczony do kilku procent,
+   bez cienia. */
 
 .md-typeset .admonition,
 .md-typeset details {
   /* akcent domyślny; poszczególne typy nadpisują go niżej */
   --ui-akcent: #448aff;
 
-  border-width: 0 0 0 var(--ui-pasek);
-  border-style: solid;
-  border-color: var(--ui-akcent);
-  border-radius: 0 var(--ui-promien) var(--ui-promien) 0;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-left: var(--ui-pasek-callout) solid var(--ui-akcent);
+  border-radius: var(--ui-promien);
+  /* Material i własne typy (karta, rozgrzewka) ustawiają border-color całej
+     ramce w kolorze typu — mocniejszym selektorem. Kolor typu ma zostać
+     tylko na pasku, więc trzy pozostałe boki wymuszamy. */
+  border-top-color: var(--md-default-fg-color--lightest) !important;
+  border-right-color: var(--md-default-fg-color--lightest) !important;
+  border-bottom-color: var(--md-default-fg-color--lightest) !important;
 
   background-color: var(--md-default-bg-color); /* zapas, gdyby color-mix nie zadziałał */
   background-color: color-mix(in srgb, var(--ui-akcent) var(--ui-tlo-callout), var(--md-default-bg-color));
@@ -499,5 +506,132 @@
     background: none;
     border: 1px solid #999;
     border-inline-start-width: var(--ui-pasek);
+  }
+}
+
+/* ═════════════ 8. Elementy klikalne, numeracja rozgrzewki, kod ═════════════
+   Punkty 18–21 z POMYSLY.md. Reakcja na mysz tylko tam, gdzie da się kliknąć
+   (zwijane belki, kafelki) — zwykłe ramki nie podświetlają się, żeby nie
+   sugerować uczniowi, że coś się stanie po kliknięciu. */
+
+/* ─── Zwijane belki („Plan dwóch lekcji”, „Odpowiedzi”, podpowiedzi) jako
+   przyciski: belka sięga od krawędzi do krawędzi ramki, ma tło po najechaniu
+   i kreskę oddzielającą treść, gdy jest rozwinięta.
+   Selektory są celowo „ciężkie” (:is(...) i [dir]) — muszą przebić regułę
+   tytułów z sekcji 1, która ma swoistość (0,4,0). */
+[dir] .md-typeset details:is(.admonition, details) > summary:is(.admonition-title, summary) {
+  margin: 0 -0.9rem;
+  padding: 0.6rem 2.2rem 0.6rem 2.4rem;
+  cursor: pointer;
+  border-radius: 0 calc(var(--ui-promien) - 1px) 0 0;
+  transition: background-color 0.15s ease;
+}
+
+[dir] .md-typeset details:is(.admonition, details) > summary:is(.admonition-title, summary)::before {
+  inset-inline-start: 0.9rem;
+  top: 0.65rem;
+}
+
+[dir] .md-typeset details:is(.admonition, details) > summary:is(.admonition-title, summary):hover {
+  background-color: color-mix(in srgb, var(--ui-akcent) 14%, transparent);
+}
+
+[dir] .md-typeset details:is(.admonition, details) > summary:is(.admonition-title, summary):focus-visible {
+  outline: 2px solid var(--ui-akcent);
+  outline-offset: -2px;
+}
+
+/* Zwinięta: sama belka, bez pustego paska pod nią. */
+[dir] .md-typeset details:is(.admonition, details):not([open]) {
+  padding-bottom: 0;
+}
+
+[dir] .md-typeset details:is(.admonition, details):not([open]) > summary:is(.admonition-title, summary) {
+  border-radius: 0 calc(var(--ui-promien) - 1px) calc(var(--ui-promien) - 1px) 0;
+}
+
+/* Rozwinięta: kreska pod belką oddziela przycisk od treści. */
+[dir] .md-typeset details:is(.admonition, details)[open] > summary:is(.admonition-title, summary) {
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  margin-bottom: 0.5rem;
+}
+
+/* ─── Belki w środku ramki zachowują się jak zakładki widżetu rozgrzewki:
+   zwinięta — szary napis (jak nieaktywna zakładka), po najechaniu napis
+   w kolorze ramki; rozwinięta — pełne tło w kolorze ramki i biały napis
+   (jak aktywna zakładka). Ramki najwyższego poziomu zostają bez zmian. */
+[dir] .md-typeset :is(.admonition, details) details:is(.admonition, details):not([open]) > summary:is(.admonition-title, summary) {
+  color: var(--md-default-fg-color--light);
+}
+
+[dir] .md-typeset :is(.admonition, details) details:is(.admonition, details):not([open]) > summary:is(.admonition-title, summary):hover {
+  color: var(--ui-akcent);
+}
+
+[dir] .md-typeset :is(.admonition, details) details:is(.admonition, details)[open] > summary:is(.admonition-title, summary) {
+  background-color: var(--ui-akcent);
+  color: #fff;
+  border-bottom-color: transparent;
+}
+
+[dir] .md-typeset :is(.admonition, details) details:is(.admonition, details)[open] > summary:is(.admonition-title, summary):hover {
+  background-color: color-mix(in srgb, var(--ui-akcent) 85%, #000);
+}
+
+[dir] .md-typeset :is(.admonition, details) details:is(.admonition, details)[open] > summary:is(.admonition-title, summary)::before,
+[dir] .md-typeset :is(.admonition, details) details:is(.admonition, details)[open] > summary:is(.admonition-title, summary)::after {
+  background-color: #fff;
+}
+
+/* ─── Numery pytań w rozgrzewce jako kolorowe kółka. Tylko lista będąca
+   bezpośrednio w ramce rozgrzewki — odpowiedzi w zagnieżdżonej ramce
+   i zwykłe listy w treści zostają bez zmian. */
+.md-typeset .rozgrzewka > ol {
+  list-style: none;
+  counter-reset: rz-nr;
+  margin-inline-start: 0;
+  padding-inline-start: 0;
+}
+
+.md-typeset .rozgrzewka > ol > li {
+  counter-increment: rz-nr;
+  position: relative;
+  margin-inline-start: 0;
+  padding-inline-start: 2.1rem;
+  margin-block: 0 0.8em;
+  min-height: 1.5rem;
+}
+
+.md-typeset .rozgrzewka > ol > li::before {
+  content: counter(rz-nr);
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0.05em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 50%;
+  background-color: var(--rz-akcent);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ─── Kod w tekście (`C7`, `=B7/$B$4`): tło i cienka obwódka liczone od koloru
+   tekstu, więc odcinają się zarówno od strony, jak i od zabarwionej ramki,
+   w obu motywach. */
+.md-typeset :not(pre) > code {
+  background-color: color-mix(in srgb, var(--md-default-fg-color) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-default-fg-color) 14%, transparent);
+  color: var(--md-code-fg-color);
+}
+
+@media print {
+  .md-typeset .rozgrzewka > ol > li::before {
+    -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
   }
 }
