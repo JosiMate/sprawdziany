@@ -177,13 +177,20 @@
     document.head.appendChild(st);
   }
 
-  /* Dla karty pracy („Wyślij do nauczyciela”): samoocena kryteriów z tej strony. */
+  /* Dla karty pracy („Wyślij do nauczyciela”): samoocena kryteriów z tej strony.
+     Karta działu (strona działu bez własnych kryteriów, np. inf-sb, asso) bierze
+     samoocenę z tematów tego działu — stron leżących pod bieżącym adresem. */
   window.Samoocena = {
     naStronie() {
       const d = wczytaj();
-      return [...document.querySelectorAll("li[data-so-id]")]
+      const tu = [...document.querySelectorAll("li[data-so-id]")]
         .map((li) => ({ t: li.dataset.soTekst || "", o: d[li.dataset.soId]?.o || "" }))
         .filter((x) => x.t && x.o);
+      if (document.querySelector("li[data-so-id]")) return tu;
+      const s = sciezka();
+      return Object.values(d).filter((v) => v && v.t && v.o && v.u && v.u !== s && v.u.startsWith(s))
+        .sort((a, b) => String(a.u).localeCompare(String(b.u)))
+        .slice(0, 40).map((v) => ({ t: v.t, o: v.o }));
     },
   };
 
