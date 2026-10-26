@@ -1,0 +1,32 @@
+# Cotygodniowe sprawdzanie linków zewnętrznych na stronach serwisu.
+# Działa tylko według harmonogramu (poniedziałek rano) i na żądanie z karty
+# Actions — nie blokuje commitów ani PR-ów. Czerwony przebieg = co najmniej
+# jeden zepsuty link (404/410, nieznana domena); GitHub wyśle wtedy e-mail.
+# Szczegóły: .github/scripts/linki.py (lista pomijanych adresów: POMIJANE).
+
+name: Linki
+
+on:
+  schedule:
+    - cron: '23 5 * * 1'     # poniedziałek 5:23 UTC (7:23 w Polsce latem)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linki:
+    name: Sprawdź linki zewnętrzne
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Pobierz repozytorium
+        uses: actions/checkout@v7
+
+      - name: Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Sprawdź linki
+        run: python .github/scripts/linki.py

@@ -1,5 +1,6 @@
 # Kontrola repozytorium: budowa strony, brak kluczy i scenariuszy w publicznym
-# repo oraz pilnowanie kluczy, pod którymi uczniowie mają zapisany postęp.
+# repo, paczki do pobrania i quizy oraz pilnowanie kluczy, pod którymi uczniowie
+# mają zapisany postęp.
 # Działa na PR-ach (np. od Julesa) i po każdym pushu do main. Niczego nie publikuje.
 
 name: Kontrola
@@ -45,6 +46,11 @@ jobs:
 
       - name: Identyfikatory kart pracy
         run: python .github/scripts/kontrola.py struktura
+
+      # PHP, Node i gcc są na obrazie ubuntu-latest — składnia plików w paczkach
+      # sprawdzana bez instalowania czegokolwiek.
+      - name: Paczki do pobrania i quizy
+        run: python .github/scripts/kontrola.py paczki
 
       - name: Postęp uczniów — czy klucze nie zniknęły
         env:

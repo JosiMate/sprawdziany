@@ -4,6 +4,7 @@
   kontrola.py sekrety          klucze i scenariusze nie mogą być w repozytorium
   kontrola.py struktura        poprawność identyfikatorów w kartach pracy (JSON)
   kontrola.py klucze --base S  nic, co trzyma postęp uczniów, nie zniknęło od commita S
+  kontrola.py paczki           paczki .zip w docs/pliki i quizy na stronach
 
 Postęp uczniów siedzi w localStorage pod kluczami zbudowanymi z:
   - id karty i id pól w docs/assets/karty/*.json,
@@ -16,8 +17,11 @@ komunikatu commita znacznik  [zmiana-kluczy]  — wtedy kontrola tylko ostrzeże
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
+import zipfile
 
 ZNACZNIK = "[zmiana-kluczy]"
 KARTY = re.compile(r"^docs/assets/karty/[^/]+\.json$")
@@ -174,6 +178,148 @@ def zmienione(rewizja):
     return wynik
 
 
+# ------------------------------------------------------------------ paczki
+SMIECI = re.compile(r"(^|/)(__MACOSX|\.DS_Store|Thumbs\.db|desktop\.ini|\.git|\.vscode|node_modules)(/|$)", re.I)
+NIE_DLA_UCZNIA = re.compile(r"(rozwiazan|rozwiązan|klucz|scenariusz)", re.I)
+CELOWE = re.compile(r"błęd|bled", re.I)        # „Ten plik ma kilka błędów” w nagłówku
+
+
+def sprawdz_skladnie(sciezka, rel):
+    """(narzędzie, komunikat) gdy plik ma błąd składni; None gdy OK albo brak narzędzia."""
+    ext = os.path.splitext(sciezka)[1].lower()
+    if ext == ".php" and shutil.which("php"):
+        cmd = ["php", "-l", sciezka]
+    elif ext in (".js", ".mjs") and shutil.which("node"):
+        cmd = ["node", "--check", sciezka]
+    elif ext == ".c" and shutil.which("gcc"):
+        cmd = ["gcc", "-fsyntax-only", sciezka]
+    elif ext == ".py":
+        cmd = [sys.executable, "-m", "py_compile", sciezka]
+    elif ext == ".json":
+        try:
+            with open(sciezka, encoding="utf-8") as f:
+                json.load(f)
+            return None
+        except ValueError as e:
+            return ("json", str(e))
+    else:
+        return None
+    r = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
+    if r.returncode == 0:
+        return None
+    tekst = (r.stderr or r.stdout).strip().replace(sciezka, rel)
+    linia = next((l for l in tekst.splitlines() if re.search(r"error|Error|błąd", l)), tekst.splitlines()[0] if tekst else "")
+    return (cmd[0], linia[:200])
+
+
+def naglowek_mowi_o_bledach(sciezka):
+    try:
+        with open(sciezka, encoding="utf-8", errors="replace") as f:
+            poczatek = "".join(f.readline() for _ in range(8))
+    except OSError:
+        return False
+    return bool(CELOWE.search(poczatek))
+
+
+def quizy(sciezka, tekst):
+    for m in re.finditer(r'<div[^>]*class="quiz"[^>]*>\s*<script[^>]*>(.*?)</script>', tekst, re.S):
+        nr_linii = tekst[:m.start()].count("\n") + 1
+        miejsce = f"{sciezka} (wiersz {nr_linii})"
+        try:
+            dane = json.loads(m.group(1))
+        except ValueError as e:
+            bledy.append((sciezka, f"Quiz w wierszu {nr_linii} nie jest poprawnym JSON-em: {e}"))
+            continue
+        lista = dane if isinstance(dane, list) else dane.get("pytania") if isinstance(dane, dict) else None
+        if not isinstance(lista, list) or not lista:
+            bledy.append((sciezka, f"Quiz w wierszu {nr_linii} nie ma listy pytań."))
+            continue
+        for i, q in enumerate(lista, 1):
+            if not isinstance(q, dict) or not str(q.get("pytanie", "")).strip():
+                bledy.append((sciezka, f"Quiz w wierszu {nr_linii}, pytanie {i}: brak treści pytania."))
+                continue
+            opcje = q.get("opcje", q.get("odpowiedzi"))
+            if opcje is None:
+                if not q.get("odpowiedz"):
+                    bledy.append((sciezka, f"Quiz w wierszu {nr_linii}, pytanie {i}: brak opcji i brak odpowiedzi."))
+                continue
+            p = q.get("poprawna")
+            if not isinstance(opcje, list) or len(opcje) < 2:
+                bledy.append((sciezka, f"Quiz w wierszu {nr_linii}, pytanie {i}: mniej niż dwie opcje."))
+            elif not isinstance(p, int) or not 0 <= p < len(opcje):
+                bledy.append((sciezka, f"Quiz w wierszu {nr_linii}, pytanie {i}: „poprawna” = {p!r}, a opcji jest {len(opcje)} (liczymy od 0)."))
+            elif len({str(o).strip() for o in opcje}) != len(opcje):
+                bledy.append((sciezka, f"Quiz w wierszu {nr_linii}, pytanie {i}: dwie jednakowe opcje."))
+
+
+def paczki():
+    # linki do docs/pliki ze stron (brakujące pliki łapie już mkdocs --strict)
+    linkowane = set()
+    for sciezka in (git("ls-files", "docs") or "").splitlines():
+        if not sciezka.endswith(".md"):
+            continue
+        with open(sciezka, encoding="utf-8") as f:
+            tekst = f.read()
+        quizy(sciezka, tekst)
+        for m in re.finditer(r"\]\(([^)\s]*pliki/[^)\s#]+)", tekst):
+            linkowane.add(os.path.basename(m.group(1)))
+
+    do_pobrania = [s for s in (git("ls-files") or "").splitlines() if re.match(r"docs/(.+/)?pliki/[^/]+$", s)]
+    sprawdzone = 0
+    for zp in do_pobrania:
+        if os.path.basename(zp) not in linkowane:
+            ostrzezenia.append((zp, "Pliku nie linkuje żadna strona — uczniowie go nie znajdą."))
+        rozszerzenie = os.path.splitext(zp)[1].lower()
+        if rozszerzenie in (".docx", ".xlsx", ".pptx"):
+            try:
+                zipfile.ZipFile(zp).testzip()
+            except (zipfile.BadZipFile, OSError) as e:
+                bledy.append((zp, f"Plik pakietu Office jest uszkodzony: {e}"))
+            continue
+        if rozszerzenie != ".zip":
+            wynik = sprawdz_skladnie(zp, zp)
+            if wynik and not naglowek_mowi_o_bledach(zp):
+                bledy.append((zp, f"Błąd składni ({wynik[0]}): {wynik[1]}. Jeśli to celowe ćwiczenie, napisz o błędach w nagłówku pliku (pierwsze 8 wierszy)."))
+            elif wynik:
+                print(f"::notice file={zp}::błąd składni zapowiedziany w nagłówku pliku (ćwiczenie „napraw”).")
+            sprawdzone += 1
+            continue
+        try:
+            z = zipfile.ZipFile(zp)
+            nazwy = z.namelist()
+            zly = z.testzip()
+        except (zipfile.BadZipFile, OSError) as e:
+            bledy.append((zp, f"Uszkodzony plik zip: {e}"))
+            continue
+        if zly:
+            bledy.append((zp, f"Uszkodzony plik w paczce: {zly}"))
+        for n in nazwy:
+            if SMIECI.search(n):
+                bledy.append((zp, f"Śmieci w paczce: {n} — spakuj sam katalog projektu."))
+            elif NIE_DLA_UCZNIA.search(n):
+                bledy.append((zp, f"Plik „{n}” wygląda na materiał dla nauczyciela — nie może być w paczce dla uczniów."))
+        if not any(re.search(r"(^|/)CZYTAJ", n, re.I) for n in nazwy):
+            ostrzezenia.append((zp, "W paczce nie ma pliku CZYTAJ-TO-NAJPIERW.txt z instrukcją."))
+        with tempfile.TemporaryDirectory() as tmp:
+            z.extractall(tmp)
+            for n in nazwy:
+                pelna = os.path.join(tmp, n)
+                if n.endswith("/") or not os.path.isfile(pelna):
+                    continue
+                wynik = sprawdz_skladnie(pelna, f"{os.path.basename(zp)}:{n}")
+                if not wynik:
+                    continue
+                if naglowek_mowi_o_bledach(pelna):
+                    print(f"::notice file={zp}::{n} — błąd składni zapowiedziany w nagłówku pliku (ćwiczenie „napraw”).")
+                    continue
+                bledy.append((zp, f"{n}: błąd składni ({wynik[0]}): {wynik[1]}. Jeśli to celowe ćwiczenie, napisz o błędach w nagłówku pliku (pierwsze 8 wierszy)."))
+        sprawdzone += 1
+    brak = [n for n in ("php", "node", "gcc") if not shutil.which(n)]
+    if brak:
+        print("::notice::Nie sprawdzam składni plików: " + ", ".join(brak) + " — brak narzędzia na tej maszynie.")
+    print(f"Sprawdzone pliki do pobrania: {sprawdzone}.")
+
+
 # ------------------------------------------------------------- porównanie
 def klucze(baza):
     if not baza or set(baza) == {"0"} or subprocess.run(
@@ -219,7 +365,7 @@ def znacznik_obecny(baza):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ("sekrety", "struktura", "klucze"):
+    if len(sys.argv) < 2 or sys.argv[1] not in ("sekrety", "struktura", "klucze", "paczki"):
         print(__doc__)
         return 2
     tryb = sys.argv[1]
@@ -229,15 +375,18 @@ def main():
         return 0 if sekrety() else 1
     if tryb == "struktura":
         struktura()
+    elif tryb == "paczki":
+        paczki()
     else:
         klucze(baza)
 
-    zamierzone = tryb == "klucze" and znacznik_obecny(baza)
+    # w trybie „paczki” ostrzeżenia tylko informują, nie zatrzymują
+    zamierzone = tryb == "paczki" or (tryb == "klucze" and znacznik_obecny(baza))
     for plik, opis in bledy:
         adnotacja("error", plik, opis)
     for plik, opis in ostrzezenia:
         adnotacja("warning" if zamierzone else "error", plik, opis)
-    if zamierzone and ostrzezenia:
+    if zamierzone and ostrzezenia and tryb == "klucze":
         print(f"\nZnaleziono {ZNACZNIK} — zmiany kluczy uznane za zamierzone.")
     zatrzymaj = bool(bledy) or (bool(ostrzezenia) and not zamierzone)
     if zatrzymaj:
