@@ -653,21 +653,29 @@
 .kp-menu-lista[hidden] { display: none; }
 .kp-menu-lista {
   position: absolute; z-index: 5; left: 0; top: calc(100% + .35em);
-  min-width: 17rem; max-width: min(24rem, calc(100vw - 2rem));
-  display: grid; padding: .3em;
+  min-width: 13rem; max-width: min(20rem, calc(100vw - 2rem));
+  display: grid; padding: .25em .5em;
   background: var(--md-default-bg-color); border: 1px solid var(--ui-linia, rgb(0 0 0 / .12));
   border-radius: var(--ui-promien, .4rem); box-shadow: 0 .4rem 1.2rem rgb(0 0 0 / .18);
 }
+/* Pozycje jak pigułki z ikoną, oddzielone cienką linią. */
 .kp-menu-lista button {
-  display: grid; gap: .1em; text-align: left; width: 100%;
-  padding: .55em .75em; border: 0; border-radius: var(--ui-promien-maly, .3rem);
-  background: none; color: var(--md-default-fg-color); font: inherit; font-size: .74rem; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; gap: .55em; justify-self: start; text-align: left;
+  margin: .4em 0; padding: .35em .85em .35em .6em; border: 0; border-radius: 999px;
+  background: color-mix(in srgb, var(--md-default-fg-color) 6%, transparent);
+  color: var(--md-default-fg-color); font: inherit; font-size: .74rem; font-weight: 600; cursor: pointer;
 }
-.kp-menu-lista button small { font-weight: 400; font-size: .64rem; color: var(--md-default-fg-color--light); }
+.kp-menu-lista button + button { position: relative; margin-top: .8em; }
+.kp-menu-lista button + button::before {
+  content: ""; position: absolute; left: -.5em; right: -999px; top: -.42em;
+  border-top: 1px solid var(--ui-linia, rgb(0 0 0 / .12));
+}
+.kp-menu-lista { overflow: hidden; }
 .kp-menu-lista button:hover, .kp-menu-lista button:focus-visible {
-  background: color-mix(in srgb, var(--md-accent-fg-color) 12%, transparent); outline: none;
+  background: color-mix(in srgb, var(--md-accent-fg-color) 18%, transparent); outline: none;
 }
 .kp-menu-lista button:disabled { opacity: .5; cursor: progress; }
+.kp-ikona { width: 1.35em; height: 1.35em; flex: none; }
 .kp-stopka .kp-wyczysc {
   margin-left: auto; padding: .3em .2em; border: 0; background: none; cursor: pointer;
   font: inherit; font-size: .68rem; color: var(--md-default-fg-color--light);
