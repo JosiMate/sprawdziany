@@ -116,6 +116,15 @@
 .sp-bledy { margin: .4em 0 0; font-weight: 400; }
 
 .sp-przyciski { display: flex; flex-wrap: wrap; gap: .7em; margin: .8em 0 .4em; }
+/* „Kontynuuj pracę zapisaną na Dysku” na stronie startowej */
+.sp-kontynuuj { margin-top: 1.2em; border: 1px solid var(--md-default-fg-color--lightest); border-radius: .3rem; padding: .5em .9em; }
+.sp-kontynuuj > summary { cursor: pointer; }
+.sp-kontynuuj p { margin: .5em 0; font-size: .75rem; }
+.sp-kont-pola { display: flex; flex-wrap: wrap; gap: .6em 1em; align-items: flex-end; }
+.sp-kont-pola label { display: grid; gap: .15em; font-size: .7rem; color: var(--md-default-fg-color--light); }
+.sp-kont-pola input { font: inherit; font-size: .8rem; padding: .3em .5em; border: 1px solid var(--md-default-fg-color--lighter); border-radius: .2rem; width: 9em; background: var(--md-default-bg-color); color: var(--md-default-fg-color); }
+.sp-kont-pola .md-button { margin: 0; font-size: .75rem; }
+.sp-kont-lista .md-button { font-size: .7rem; }
 .sp-przyciski .md-button { margin: 0; }
 
 /* ── nagłówek arkusza ──────────────────────────────────────────────────── */
@@ -164,7 +173,7 @@
 .kp-stopka .sp-zakoncz.sp-uzbrojony { border-color: #c62828; color: #fff; background: #c62828; }
 
 @media print {
-  .kp-stopka, .kp-zrzut-pusty, .sp-upusc { display: none !important; }
+  .kp-stopka, .kp-zrzut-pusty, .sp-upusc, .sp-kontynuuj { display: none !important; }
 }
 
 /* Kod z karteczki (wysyłanie do nauczyciela) */

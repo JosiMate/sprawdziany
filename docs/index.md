@@ -22,11 +22,15 @@ hide:
 2. Kliknij **Wczytaj arkusz** i wskaż ten plik. Pojawią się zadania i pola na odpowiedzi.
 3. Wpisz **numer w dzienniku** i **kod z karteczki** od nauczyciela, potem rozwiązuj. Odpowiedzi zapisują się same na tym komputerze —
    gdy przeglądarka się zamknie, otwórz tę stronę jeszcze raz i wybierz *To moja praca*.
-4. Zrzuty ekranu robisz skrótem ++win+shift+s++ i wklejasz w ramkę przez ++ctrl+v++.
-5. Na koniec kliknij **Wyślij do nauczyciela**. Zobaczysz godzinę odbioru i numer
+4. Nie zdążysz albo musisz zmienić komputer? Kliknij **Zapisz postęp na Dysku**. Na innym
+   komputerze (albo na następnej lekcji) rozwiń na tej stronie **Kontynuuj pracę zapisaną na Dysku**
+   i wpisz klasę, numer i kod z karteczki — wrócą wszystkie odpowiedzi i zrzuty.
+   To nie jest oddanie pracy.
+5. Zrzuty ekranu robisz skrótem ++win+shift+s++ i wklejasz w ramkę przez ++ctrl+v++.
+6. Na koniec kliknij **Wyślij do nauczyciela**. Zobaczysz godzinę odbioru i numer
    potwierdzenia — zapisz go. Gdy wysyłanie nie działa, kliknij **Pobierz jako dokument Word**
    i dołącz plik w *Zadaniach domowych* w dzienniku.
-6. Gdy praca jest wysłana, kliknij **Zakończ i usuń odpowiedzi z tego komputera**.
+7. Gdy praca jest wysłana, kliknij **Zakończ i usuń odpowiedzi z tego komputera**.
 
 !!! tip "Chcesz spróbować przed sprawdzianem?"
 
@@ -41,6 +45,11 @@ hide:
     zapisują się na Dysku Google nauczyciela. Kod z karteczki pilnuje, żeby nikt nie wysłał
     pracy za ciebie. Jeżeli zamiast tego pobierzesz dokument Word, nauczyciel dostanie tylko to,
     co sam dołączysz w dzienniku.
+
+    **Zapisz postęp na Dysku** też wysyła pracę na Dysk nauczyciela, ale tylko po to, żebyś mógł
+    ją dokończyć gdzie indziej — to nie jest oddanie. Nauczyciel widzi, kiedy zapisałeś i kiedy
+    wczytałeś pracę. Kod z karteczki pilnuje, żeby nikt inny jej nie wczytał. Po wysłaniu pracy
+    zapis postępu znika.
 
     Kto otworzy stronę po tobie i zastanie twoją pracę, zobaczy jedynie pytanie, czy to jego
     praca, z twoim numerem w dzienniku — i może ją usunąć. Praca zostawiona na komputerze dłużej

@@ -102,6 +102,7 @@ Plik JSON. Treści poleceń mogą zawierać `<strong>`, `<em>`, `<code>`, `<kbd>
 | `mono` | odpowiedź czcionką o stałej szerokości (adresy, polecenia) |
 | `regula` | własny opis zasady oceniania zamiast domyślnego |
 | `poziomy` | własna lista poziomów: `[{"kod": "K", "opis": "…", "ocena": "2"}, …]` |
+| `zapis_postepu` | `false` wyłącza przycisk „Zapisz postęp na Dysku” (np. krótka kartkówka, której nie wolno kończyć w domu); domyślnie włączony, gdy strona ma skrypt nauczyciela |
 
 Identyfikatory pól muszą być unikalne w całym arkuszu i nie mogą zaczynać się od `_`.
 Strona sprawdza arkusz przy wczytaniu i wypisuje błędy z numerem polecenia — **wczytaj każdy

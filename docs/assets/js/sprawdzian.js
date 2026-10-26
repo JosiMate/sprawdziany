@@ -18,6 +18,10 @@
  *    starsza niż WAZNOSC_GODZ znika sama.
  *  - Po pobraniu dokumentu uczeń kończy pracę jednym przyciskiem, który
  *    usuwa jego odpowiedzi z komputera.
+ *  - „Zapisz postęp na Dysku” (gdy jest skrypt nauczyciela, data-odbior) wysyła
+ *    pracę w toku razem z arkuszem; na innym komputerze albo na następnej lekcji
+ *    uczeń wczytuje ją na stronie startowej po klasie, numerze i kodzie
+ *    z karteczki. Arkusz z "zapis_postepu": false tę możliwość wyłącza.
  *
  * Użycie w Markdownie:   <div id="sprawdzian" class="sprawdzian"></div>
  */
@@ -279,6 +283,32 @@
   const czyPusta = (r) => !r || (!maWartosc(r.odpowiedzi && r.odpowiedzi._nr) &&
     Object.entries(r.odpowiedzi || {}).every(([k, v]) => k.startsWith("_") || !maWartosc(v)));
 
+  /* ─────────────────────────── skrypt nauczyciela ───────────────────────────
+     Treść jako text/plain — wtedy przeglądarka nie pyta skryptu o zgodę (CORS)
+     i można odczytać odpowiedź. null = brak połączenia. */
+  async function doSkryptu(adres, dane) {
+    try {
+      const resp = await fetch(adres, { method: "POST", body: JSON.stringify(dane),
+        headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow" });
+      return await resp.json();
+    } catch { return null; }
+  }
+  const normKod = (k) => String(k || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  function komunikatSkryptu(w, nr, klasa, coRobimy) {
+    const k = {
+      zly_kod: `Ten kod nie pasuje do numeru ${esc(nr)} w klasie ${esc(klasa)}. Sprawdź numer, klasę i kod.` +
+        (w && w.pozostalo != null ? ` Zostało prób: ${esc(w.pozostalo)}.` : ""),
+      zablokowane: "Za dużo złych kodów dla tego numeru — zablokowane na godzinę. Zawołaj nauczyciela.",
+      za_czesto: "Za dużo prób w krótkim czasie. Odczekaj kilka minut.",
+      za_duze: "Praca jest za duża do wysłania (zrzuty ekranu). Pobierz dokument Word i oddaj go w dzienniku.",
+      brak_danych: "Brakuje numeru, klasy albo kodu.",
+      nieskonfigurowane: "Odbiór prac nie jest jeszcze włączony. Pobierz dokument Word i oddaj go w dzienniku.",
+      wylaczone: "W tym sprawdzianie nauczyciel nie pozwala zapisywać postępu na Dysku.",
+    };
+    return (w && k[w.blad]) || `Serwer nauczyciela nie ${coRobimy}. Zawołaj nauczyciela.`;
+  }
+  const mozeZapisPostepu = (host, a) => !!host.dataset.odbior && a.zapis_postepu !== false;
+
   /* ─────────────────────────── widoki ─────────────────────────── */
   function pokazPomoc(widoczna) {
     document.querySelectorAll(".sp-pomoc").forEach((el) => { el.hidden = !widoczna; });
@@ -295,8 +325,21 @@
         <input type="file" class="sp-plik" accept=".json,application/json" hidden>
       </div>
       <p class="kp-status" role="status" aria-live="polite"></p>
+      ${host.dataset.odbior ? `<details class="sp-kontynuuj">
+        <summary>Zacząłeś na innym komputerze? <strong>Kontynuuj pracę zapisaną na Dysku</strong></summary>
+        <p>Działa, jeśli wcześniej kliknąłeś <em>Zapisz postęp na Dysku</em>. Wpisz te same dane co w pracy.</p>
+        <div class="sp-kont-pola">
+          <label>Klasa <input type="text" name="klasa" autocomplete="off" placeholder="np. 1TT" maxlength="8"></label>
+          <label>Numer w dzienniku <input type="text" name="numer" inputmode="numeric" autocomplete="off" placeholder="np. 12" maxlength="2"></label>
+          <label>Kod z karteczki <input type="text" name="kod" class="sp-kod" autocomplete="off" spellcheck="false" maxlength="7" placeholder="np. K7MPQ"></label>
+          <button type="button" class="md-button md-button--primary sp-kont-wczytaj">Wczytaj moją pracę</button>
+        </div>
+        <p class="kp-status sp-kont-status" role="status" aria-live="polite"></p>
+        <div class="sp-kont-lista"></div>
+      </details>` : ""}
     </div>`;
     const status = host.querySelector(".kp-status");
+    if (host.dataset.odbior) podlaczKontynuacje(host);
     if (komunikat) { status.innerHTML = komunikat.html; status.className = "kp-status " + (komunikat.klasa || ""); }
     if (bezZapisu) {
       status.innerHTML = "<strong>Ta przeglądarka nie pozwala zapisywać odpowiedzi.</strong> " +
@@ -319,9 +362,47 @@
     });
   }
 
+  /* Wczytanie pracy zapisanej na Dysku nauczyciela (przycisk „Zapisz postęp na Dysku”). */
+  function podlaczKontynuacje(host) {
+    const box = host.querySelector(".sp-kontynuuj");
+    const st = box.querySelector(".sp-kont-status"), lista = box.querySelector(".sp-kont-lista");
+    const pole = (n) => box.querySelector(`[name="${n}"]`);
+    const btn = box.querySelector(".sp-kont-wczytaj");
+    const wczytaj = async (id) => {
+      const klasa = pole("klasa").value.trim().toUpperCase().replace(/\s+/g, "");
+      const numer = pole("numer").value.trim(), kod = normKod(pole("kod").value);
+      if (!klasa || !/^\d{1,2}$/.test(numer)) { blad(st, "Wpisz klasę i numer w dzienniku."); return; }
+      if (kod.length !== 5) { blad(st, "Wpisz kod z karteczki — 5 znaków."); pole("kod").focus(); return; }
+      btn.disabled = true; st.textContent = "Szukam Twojej pracy na Dysku nauczyciela…"; st.className = "kp-status sp-kont-status";
+      try {
+        const w = await doSkryptu(host.dataset.odbior, { akcja: "postep_wczytaj", typ: "sprawdzian", klasa, numer, kod, ...(id ? { id } : {}) });
+        if (!w) { blad(st, "Nie udało się połączyć z serwerem nauczyciela. Sprawdź internet i spróbuj jeszcze raz."); return; }
+        if (!w.ok) { blad(st, komunikatSkryptu(w, numer, klasa, "odczytał pracy")); return; }
+        if (!Array.isArray(w.prace)) { blad(st, "Skrypt nauczyciela nie obsługuje jeszcze zapisu postępu. Zawołaj nauczyciela."); return; }
+        if (!w.prace.length) { blad(st, `Na Dysku nauczyciela nie ma zapisanej pracy numeru ${esc(numer)} w klasie ${esc(klasa)}.`); return; }
+        if (!w.praca) {
+          st.textContent = "Masz kilka zapisanych prac — wybierz właściwą:"; st.className = "kp-status sp-kont-status";
+          lista.innerHTML = `<div class="sp-przyciski">${w.prace.map((x) => `<button type="button" class="md-button sp-kont-praca" data-id="${esc(x.id)}">
+            ${esc(x.tytul)}${x.grupa ? ` · grupa ${esc(x.grupa)}` : ""} · zapis ${esc(x.zapisano)}</button>`).join("")}</div>`;
+          lista.querySelectorAll(".sp-kont-praca").forEach((b) => b.addEventListener("click", () => wczytaj(b.dataset.id)));
+          return;
+        }
+        const a = w.praca.arkusz;
+        if (!a || sprawdzArkusz(a).length) { blad(st, "Zapisana praca jest uszkodzona. Zawołaj nauczyciela."); return; }
+        const teraz = new Date().toISOString();
+        const rekord = { arkusz: a, odpowiedzi: { ...(w.praca.odpowiedzi || {}), _klasa: klasa, _nr: numer, _kod: kod },
+          rozpoczeto: w.praca.rozpoczeto || teraz, zapisano: teraz, pobrano: null, zDysku: w.praca.zapisano || "" };
+        await zachowaj(rekord);
+        widokPraca(host, rekord);
+      } finally { btn.disabled = false; }
+    };
+    btn.addEventListener("click", () => wczytaj());
+    box.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("input")) { e.preventDefault(); wczytaj(); } });
+  }
+
   function blad(status, html) {
     status.innerHTML = html;
-    status.className = "kp-status kp-blad";
+    status.className = "kp-status kp-blad" + (status.classList.contains("sp-kont-status") ? " sp-kont-status" : "");
   }
 
   async function wczytajPlikArkusza(host, plik, status) {
@@ -486,6 +567,7 @@
       <div class="kp-stopka">
         <p class="sp-postep" aria-live="polite"></p>
         ${host.dataset.odbior ? `<button type="button" class="sp-wyslij md-button md-button--primary">Wyślij do nauczyciela</button>` : ""}
+        ${mozeZapisPostepu(host, a) ? `<button type="button" class="sp-zapisz-dysk md-button" title="Praca w toku trafia na Dysk nauczyciela. Dokończysz ją na innym komputerze albo na następnej lekcji (klasa, numer i kod z karteczki). To nie jest oddanie pracy.">Zapisz postęp na Dysku</button>` : ""}
         <button type="button" class="kp-generuj md-button${host.dataset.odbior ? "" : " md-button--primary"}">Pobierz jako dokument Word</button>
         <span class="kp-luka" aria-hidden="true"></span>
         <button type="button" class="sp-zakoncz md-button">Zakończ i usuń odpowiedzi z tego komputera</button>
@@ -526,6 +608,12 @@
       }
     };
     pokazZapis(!bezZapisu);
+    if (rekord.zDysku) {
+      status.innerHTML = `Wczytano Twoją pracę zapisaną na Dysku ${esc(rekord.zDysku)}. Pisz dalej — przed końcem lekcji ` +
+        "znowu kliknij <strong>Zapisz postęp na Dysku</strong> albo <strong>Wyślij do nauczyciela</strong>.";
+      status.className = "kp-status kp-ok";
+      delete rekord.zDysku;
+    }
 
     let czasomierz = null;
     const zapiszTeraz = async () => {
@@ -684,6 +772,40 @@
         };
         blad(status, komunikaty[w && w.blad] || "Serwer nauczyciela nie przyjął pracy. Pobierz dokument Word i oddaj go w dzienniku.");
       } finally { wyslij.disabled = false; }
+    });
+
+    /* Zapis postępu na Dysku nauczyciela — to nie jest oddanie pracy. Kod z karteczki
+       zostaje na tym komputerze (skrypt go nie przechowuje); zrzuty jadą jako obrazy. */
+    const zapiszDysk = host.querySelector(".sp-zapisz-dysk");
+    if (zapiszDysk) zapiszDysk.addEventListener("click", async () => {
+      const kod = normKod(odp._kod), klasa = odp._klasa || a.klasa || "";
+      if (!maWartosc(odp._nr)) { blad(status, "Wpisz najpierw numer w dzienniku."); host.querySelector('[data-pole="_nr"]').focus(); return; }
+      if (kod.length !== 5) { blad(status, "Wpisz kod z karteczki — 5 znaków. Bez niego nie wczytasz pracy na innym komputerze."); host.querySelector('[data-pole="_kod"]').focus(); return; }
+      zapiszDysk.disabled = true;
+      status.textContent = "Zapisuję postęp na Dysku nauczyciela…"; status.className = "kp-status";
+      try {
+        await zapiszTeraz();
+        const { _kod, ...bezKodu } = odp;
+        const wszystkie = wszystkichPolecen(a);
+        const w = await doSkryptu(host.dataset.odbior, { akcja: "postep_zapisz", klasa, numer: odp._nr, kod,
+          arkusz_id: a.id || wspolneId(a), tytul: a.tytul || "", grupa: a.grupa || "",
+          wypelnione: wszystkie - bezOdpowiedzi(a, odp).length, wszystkie,
+          rekord: { arkusz: a, odpowiedzi: bezKodu, rozpoczeto: rekord.rozpoczeto } });
+        if (!w) { blad(status, "Nie udało się połączyć z serwerem nauczyciela. Odpowiedzi są zapisane na tym komputerze — spróbuj jeszcze raz za chwilę."); return; }
+        if (w.ok && w.zapisano) {
+          rekord.naDysku = w.zapisano; await zapiszTeraz();
+          status.innerHTML = `<strong>Postęp zapisany na Dysku nauczyciela</strong> ${esc(w.zapisano)}. ` +
+            "Żeby pisać dalej na innym komputerze albo na następnej lekcji: otwórz tę stronę, rozwiń " +
+            "<strong>Kontynuuj pracę zapisaną na Dysku</strong> i wpisz klasę, numer i kod z karteczki. " +
+            "To nie jest oddanie pracy — na koniec kliknij <strong>Wyślij do nauczyciela</strong>.";
+          status.className = "kp-status kp-ok";
+          return;
+        }
+        // numer i kod sprawdziliśmy wyżej, więc „brak danych” zwraca tylko skrypt sprzed wersji 7
+        // (bierze zapis za wysyłkę bez karty i niczego nie zapisuje)
+        if (w.blad === "brak_danych") { blad(status, "Skrypt nauczyciela nie obsługuje jeszcze zapisu postępu. Pobierz dokument Word albo zawołaj nauczyciela."); return; }
+        blad(status, komunikatSkryptu(w, odp._nr, klasa, "zapisał postępu"));
+      } finally { zapiszDysk.disabled = false; }
     });
 
     /* Usunięcie pracy — bez okienka potwierdzenia, ale na dwa kliknięcia:
