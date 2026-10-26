@@ -635,3 +635,49 @@
             print-color-adjust: exact;
   }
 }
+
+/* ─── Stopka karty pracy: akcja główna + dwa menu ───────────────────────────
+   „Wyślij do nauczyciela” (akcja główna), „Zapisz ▾” (Word, Dysk nauczyciela,
+   plik z postępem) i „Wczytaj ▾” (Dysk, plik). „Wyczyść kartę” jako dyskretny
+   link po prawej — akcja nieodwracalna nie stoi obok przycisków zapisu. */
+.kp-stopka .kp-akcje { display: flex; flex-wrap: wrap; align-items: center; gap: .6em; width: 100%; }
+.kp-stopka .kp-akcje .md-button { margin: 0; }
+.kp-menu { position: relative; }
+.kp-stopka .kp-menu-przycisk { display: inline-flex; align-items: center; justify-content: center; gap: .5em; }
+.kp-menu-przycisk::after {
+  content: ""; flex: none; display: block; width: .4em; height: .4em; margin-top: -.25em;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: rotate(45deg); transition: transform .15s;
+}
+.kp-menu-przycisk[aria-expanded="true"]::after { transform: rotate(-135deg); margin-top: .2em; }
+.kp-menu-lista[hidden] { display: none; }
+.kp-menu-lista {
+  position: absolute; z-index: 5; left: 0; top: calc(100% + .35em);
+  min-width: 17rem; max-width: min(24rem, calc(100vw - 2rem));
+  display: grid; padding: .3em;
+  background: var(--md-default-bg-color); border: 1px solid var(--ui-linia, rgb(0 0 0 / .12));
+  border-radius: var(--ui-promien, .4rem); box-shadow: 0 .4rem 1.2rem rgb(0 0 0 / .18);
+}
+.kp-menu-lista button {
+  display: grid; gap: .1em; text-align: left; width: 100%;
+  padding: .55em .75em; border: 0; border-radius: var(--ui-promien-maly, .3rem);
+  background: none; color: var(--md-default-fg-color); font: inherit; font-size: .74rem; font-weight: 700; cursor: pointer;
+}
+.kp-menu-lista button small { font-weight: 400; font-size: .64rem; color: var(--md-default-fg-color--light); }
+.kp-menu-lista button:hover, .kp-menu-lista button:focus-visible {
+  background: color-mix(in srgb, var(--md-accent-fg-color) 12%, transparent); outline: none;
+}
+.kp-menu-lista button:disabled { opacity: .5; cursor: progress; }
+.kp-stopka .kp-wyczysc {
+  margin-left: auto; padding: .3em .2em; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: .68rem; color: var(--md-default-fg-color--light);
+  text-decoration: underline; text-underline-offset: .2em;
+}
+.kp-stopka .kp-wyczysc:hover, .kp-stopka .kp-wyczysc:focus-visible { color: #c62828; }
+@media screen and (max-width: 44em) {
+  .kp-stopka .kp-akcje > .md-button, .kp-menu { flex: 1 1 auto; }
+  .kp-stopka .kp-menu-przycisk { width: 100%; }
+  .kp-menu-lista { min-width: 0; width: max-content; }
+  .kp-menu:last-of-type .kp-menu-lista { left: auto; right: 0; }
+  .kp-stopka .kp-wyczysc { margin-left: 0; flex-basis: 100%; text-align: center; }
+}
