@@ -49,6 +49,32 @@
 
   const TYPY_POL = ["tekst", "tabela", "zrzut", "wybor"];
 
+  /* Załączniki (zalaczniki.js, wspólny z kartami pracy) — doczytywane przy
+     otwarciu pracy. Na komputerze jest miejsce na jedną pracę, więc i pliki
+     leżą pod jednym kluczem; usun() kasuje je razem z odpowiedziami — następna
+     osoba przy tym komputerze nie zobaczy cudzych plików. */
+  let ladowanieZal = null;
+  function zaladujZalaczniki() {
+    if (window.Zalaczniki) return Promise.resolve(window.Zalaczniki);
+    if (ladowanieZal) return ladowanieZal;
+    ladowanieZal = new Promise((ok, blad) => {
+      const s = document.createElement("script");
+      s.src = KATALOG + "zalaczniki.js";
+      s.onload = () => (window.Zalaczniki ? ok(window.Zalaczniki) : blad(new Error("moduł wczytany, ale pusty")));
+      s.onerror = () => { ladowanieZal = null; blad(new Error("nie udało się pobrać modułu")); };
+      document.head.appendChild(s);
+    });
+    return ladowanieZal;
+  }
+  const KLUCZ_ZAL = "sprawdziany|praca";
+  const kluczZal = () => KLUCZ_ZAL;
+  async function usunZalaczniki() {
+    try { await (await zaladujZalaczniki()).wyczysc(KLUCZ_ZAL); } catch { /* nie było */ }
+  }
+  async function ileZalacznikow() {
+    try { return (await (await zaladujZalaczniki()).lista(KLUCZ_ZAL)).length; } catch { return 0; }
+  }
+
   /* Biblioteka składająca .docx waży ponad megabajt — doczytujemy ją dopiero
      przy pierwszym kliknięciu „Pobierz jako dokument Word”. */
   let ladowanie = null;
@@ -264,6 +290,7 @@
   async function usun() {
     pamiec = null;
     try { await operacja("readwrite", (s) => s.delete(KLUCZ)); } catch { /* nic tu nie było */ }
+    await usunZalaczniki();
   }
 
   /* ─────────────────────────── liczenie ─────────────────────────── */
@@ -392,6 +419,7 @@
         const teraz = new Date().toISOString();
         const rekord = { arkusz: a, odpowiedzi: { ...(w.praca.odpowiedzi || {}), _klasa: klasa, _nr: numer, _kod: kod },
           rozpoczeto: w.praca.rozpoczeto || teraz, zapisano: teraz, pobrano: null, zDysku: w.praca.zapisano || "" };
+        await usunZalaczniki();   // nowa praca — bez plików poprzedniej osoby
         await zachowaj(rekord);
         widokPraca(host, rekord);
       } finally { btn.disabled = false; }
@@ -429,6 +457,7 @@
       arkusz, odpowiedzi: { _klasa: arkusz.klasa || "" },
       rozpoczeto: teraz, zapisano: teraz, pobrano: null,
     };
+    await usunZalaczniki();   // nowa praca — bez plików poprzedniej osoby
     await zachowaj(rekord);
     widokPraca(host, rekord);
   }
@@ -564,6 +593,7 @@
         </tbody></table>
       </div>
       ${zadania}
+      <div class="kp-zal-host"></div>
       <div class="kp-stopka">
         <p class="sp-postep" aria-live="polite"></p>
         ${host.dataset.odbior ? `<button type="button" class="sp-wyslij md-button md-button--primary">Wyślij do nauczyciela</button>` : ""}
@@ -583,6 +613,11 @@
     const odp = rekord.odpowiedzi = rekord.odpowiedzi || {};
     renderPraca(host, a, odp);
     const status = host.querySelector(".kp-status");
+    const zalHost = host.querySelector(".kp-zal-host");
+    zaladujZalaczniki()
+      .then((Z) => Z.sekcja(zalHost, kluczZal(a), { wysylka: !!host.dataset.odbior }))
+      .catch(() => { zalHost.innerHTML = '<p class="kp-blad">Nie udało się wczytać ramki na załączniki — ' +
+        "pliki oddaj w dzienniku VULCAN.</p>"; });
     const zapisInfo = host.querySelector(".sp-zapis");
     const postep = host.querySelector(".sp-postep");
 
@@ -730,7 +765,9 @@
           const g = await generuj(rekord, { tylkoPlik: true });
           word = { nazwa: g.nazwa, b64: await naBase64(g.blob) };
         } catch { word = null; }
-        status.textContent = "Wysyłam pracę…";
+        let zalaczniki = [];
+        try { zalaczniki = window.Zalaczniki ? await window.Zalaczniki.doWysylki(kluczZal(a)) : []; } catch { zalaczniki = []; }
+        status.textContent = zalaczniki.length ? `Wysyłam pracę i załączniki (${zalaczniki.length})…` : "Wysyłam pracę…";
         const odpowiedzi = {};
         a.zadania.forEach((z) => (z.polecenia || []).forEach((p) => (p.pola || []).forEach((pole) =>
           idPol({ ...pole, typ: pole.typ || "tekst" }).forEach((id) => {
@@ -740,7 +777,9 @@
           karta_id: pola.karta_id, karta_sufiks: pola.karta_sufiks, karta_tytul: pola.karta_tytul, serwis: pola.serwis,
           grupa: pola.grupa, arkusz_id: pola.arkusz_id, wypelnione: Number(pola.wypelnione), wszystkie: Number(pola.wszystkie),
           wygenerowano: pola.wygenerowano, odpowiedzi,
-          docx: word ? word.b64 : "", docx_nazwa: word ? word.nazwa : "" });
+          docx: word ? word.b64 : "", docx_nazwa: word ? word.nazwa : "",
+          // skrypt Google v8 zapisuje je w podfolderze „Załączniki”; starszy je pomija
+          zalaczniki });
         let w;
         try {
           const resp = await fetch(host.dataset.odbior, { method: "POST", body: tresc,
@@ -756,6 +795,12 @@
           status.innerHTML = `<strong>Praca dotarła do nauczyciela</strong>${w.word ? " razem z dokumentem Word" : ""} ${esc(w.odebrano || "")}. ` +
             `Numer potwierdzenia: <strong>${esc(w.potwierdzenie || "")}</strong> — zapisz go. ` +
             "Teraz kliknij <strong>Zakończ i usuń odpowiedzi</strong>." +
+            (!zalaczniki.length ? ""
+              : w.zalaczniki == null
+                ? "<br><strong>Załączniki nie dotarły</strong> — skrypt nauczyciela ich jeszcze nie przyjmuje. Oddaj pliki w dzienniku VULCAN."
+                : w.zalaczniki < zalaczniki.length
+                  ? `<br><strong>Dotarło ${esc(w.zalaczniki)} z ${zalaczniki.length} załączników</strong> — pozostałe oddaj w dzienniku VULCAN.`
+                  : ` Załączniki (${esc(w.zalaczniki)}) dotarły razem z pracą.`) +
             (brak.length ? `<br><span class="sp-brak">Bez odpowiedzi: ${esc(brak.join(", "))}. Jeżeli to przeoczenie, uzupełnij i wyślij jeszcze raz — nauczyciel zobaczy obie wersje.</span>` : "");
           status.className = "kp-status kp-ok";
           host.querySelector(".sp-zakoncz").classList.add("sp-po-pobraniu");
@@ -766,7 +811,7 @@
             (w.pozostalo != null ? ` Zostało prób: ${esc(w.pozostalo)}.` : ""),
           zablokowane: "Za dużo złych kodów dla tego numeru — wysyłanie jest zablokowane na godzinę. Zawołaj nauczyciela.",
           za_czesto: "Za dużo wysyłek w krótkim czasie. Odczekaj kilka minut.",
-          za_duze: "Praca jest za duża do wysłania (zrzuty ekranu). Pobierz dokument Word i oddaj go w dzienniku.",
+          za_duze: "Praca jest za duża do wysłania (zrzuty ekranu albo załączniki). Usuń największy załącznik i wyślij jeszcze raz — albo pobierz dokument Word i oddaj wszystko w dzienniku.",
           brak_danych: "Brakuje numeru, klasy albo kodu.",
           nieskonfigurowane: "Odbiór prac nie jest jeszcze włączony. Pobierz dokument Word i oddaj go w dzienniku.",
         };
@@ -1048,6 +1093,16 @@
       }
     }
 
+    /* Załączniki — w dokumencie tylko lista nazw; same pliki jadą z wysyłką
+       albo uczeń oddaje je w dzienniku razem z tym plikiem. */
+    let zal = [];
+    try { zal = window.Zalaczniki ? await window.Zalaczniki.lista(kluczZal(a)) : []; } catch { zal = []; }
+    if (zal.length) {
+      dzieci.push(new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 340, after: 60 },
+        children: [T("Załączniki", { bold: true, size: 25, color: ACCENT })] }));
+      zal.forEach((z) => dzieci.push(P(`• ${z.nazwa} (${window.Zalaczniki.wKB(z.rozmiar)})`, { size: 20, after: 40 })));
+    }
+
     /* Karta oceny na końcu dokumentu — nauczyciel zaznacza w niej spełnione
        polecenia wprost w pliku ucznia i odsyła go z oceną. */
     if (maPoziomy(a)) {
@@ -1126,7 +1181,8 @@
       await usun();
       rekord = null;
     }
-    if (rekord && czyPusta(rekord)) {
+    // praca bez numeru i odpowiedzi, ale z dołączonymi plikami — nie jest pusta
+    if (rekord && czyPusta(rekord) && !(await ileZalacznikow())) {
       await usun();
       rekord = null;
     }
